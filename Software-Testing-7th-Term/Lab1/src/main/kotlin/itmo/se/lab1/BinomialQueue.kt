@@ -1,7 +1,7 @@
 package itmo.se.lab1
 
 class BinomialQueue<I : Comparable<I>> {
-    class BQNode<I : Comparable<I>>(val item: I, var child: BQNode<I>?, var sibling: BQNode<I>?) {
+    private class BQNode<I : Comparable<I>>(val item: I, var child: BQNode<I>?, var sibling: BQNode<I>?) {
         fun combine(o: BQNode<I>): BQNode<I> =
                 if (item <= o.item) {
                     o.sibling = child
@@ -20,7 +20,9 @@ class BinomialQueue<I : Comparable<I>> {
                     "$item"
     }
 
-    private var size: Int
+    var size: Int
+        private set
+
     private var trees: Array<BQNode<I>?>
 
     private val capacity: Int
@@ -39,8 +41,11 @@ class BinomialQueue<I : Comparable<I>> {
         trees = arrayOf(BQNode(item, null, null))
     }
 
-    fun insert(item: I) {
-        merge(BinomialQueue(item))
+    fun insert(item: I) = merge(BinomialQueue(item))
+
+    fun clear() {
+        size = 0
+        trees = emptyArray()
     }
 
     fun merge(rhs: BinomialQueue<I>) {
@@ -86,8 +91,7 @@ class BinomialQueue<I : Comparable<I>> {
             i++
             j *= 2
         }
-        rhs.trees = emptyArray()
-        rhs.size = 0
+        rhs.clear()
     }
 
     fun removeMin(): I {
