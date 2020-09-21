@@ -40,7 +40,7 @@ class TrigApproxTest {
     fun `sine approximation meets requested precision`() {
         Assertions.assertEquals(0.5, TrigApprox.sin(Math.PI / 6, eps = 1.0), 1.0, "sin(pi/6) = 0.5, eps = 1.0")
         Assertions.assertEquals(0.5, TrigApprox.sin(Math.PI / 6, eps = 1E-8), 1E-8, "sin(pi/6) = 0.5, eps = 1e-8")
-        Assertions.assertEquals(0.5, TrigApprox.sin(Math.PI / 6, eps = 1E-16), 1E-16, "sin(pi/6) = 0.5, eps = 1e-16")
+        Assertions.assertEquals(0.5, TrigApprox.sin(Math.PI / 6, eps = 1E-14), 1E-14, "sin(pi/6) = 0.5, eps = 1e-14")
     }
 
     @Test
