@@ -13,8 +13,7 @@ class DomainModel {
 
             val p1 = Person("Ford", 1.0f)
             val p2 = Person("Arthur", 1.0f)
-            val airlock = Airlock(10.0f, atmosphere = Atmosphere(1.034f,
-                    mapOf(SoundSource.Air to SoundLevel.Hiss)), state = AirlockState.Closed)
+            val airlock = Airlock(10.0f)
 
             advance(FictionalTime(chapter = 7, word = 0), listOf(
                     Location(Vector3(0.0f, 0.0f, 0.0f)) to airlock,
@@ -46,8 +45,7 @@ class Spacetime {
 
     fun advance(newTime: FictionalTime, newEntities: List<Pair<Location, Entity>> = emptyList()) {
         val oldEnv = contents[currentTime]
-        val timeDiff = currentTime.diff(newTime)
-        val updatedEntities = oldEnv?.entities?.flatMap { (l, e) -> e.update(l, oldEnv, timeDiff).toList() }?.map { (l, e) ->
+        val updatedEntities = oldEnv?.entities?.flatMap { (l, e) -> e.update(l, oldEnv).toList() }?.map { (l, e) ->
             Pair(Location(l.position + l.velocity, l.velocity), e)
         }?.distinctBy { (_, e) -> e } ?: emptyList()
         contents[newTime] = Environment((updatedEntities + newEntities).toMap())
@@ -67,13 +65,7 @@ data class Environment(val entities: Map<Location, Entity>) {
     }
 }
 
-data class FictionalTime(val chapter: Int, val word: Int) {
-    fun diff(t2: FictionalTime): Int =
-            if (t2.chapter > chapter)
-                t2.chapter - chapter
-            else
-                t2.word - word
-}
+data class FictionalTime(val chapter: Int, val word: Int)
 
 data class Vector3(val x: Float, val y: Float, val z: Float) {
     operator fun plus(o: Vector3) = Vector3(x + o.x, y + o.y, z + o.z)
@@ -105,7 +97,7 @@ abstract class Entity {
     abstract val boundingRadius: Float
     open val atmosphere: Atmosphere? = null
 
-    open fun update(loc: Location, env: Environment, timeDiff: Int): Map<Location, Entity> = mapOf(loc to this)
+    open fun update(loc: Location, env: Environment): Map<Location, Entity> = mapOf(loc to this)
 }
 
 data class CelestialObject(override val boundingRadius: Float,
@@ -117,8 +109,8 @@ data class Person(val name: String, override val boundingRadius: Float) : Entity
 enum class AirlockState { Closed, Opening, Opened, Closing }
 
 data class Airlock(override val boundingRadius: Float,
-                   override val atmosphere: Atmosphere,
-                   val state: AirlockState) : Entity() {
+                   override val atmosphere: Atmosphere = Atmosphere(pressureBar = CLOSED_PRESSURE, mapOf(SoundSource.Air to SoundLevel.Hiss)),
+                   val state: AirlockState = AirlockState.Closed) : Entity() {
     companion object {
         const val CLOSED_PRESSURE = 1.034f
     }
@@ -136,8 +128,9 @@ data class Airlock(override val boundingRadius: Float,
         else -> this
     }
 
-    override fun update(loc: Location, env: Environment, timeDiff: Int): Map<Location, Entity> = when (state) {
-        AirlockState.Closing -> mapOf(loc to copy(state = AirlockState.Closed, atmosphere = Atmosphere(pressureBar = CLOSED_PRESSURE)))
+    override fun update(loc: Location, env: Environment): Map<Location, Entity> = when (state) {
+        AirlockState.Closing -> mapOf(loc to copy(state = AirlockState.Closed,
+                atmosphere = Atmosphere(pressureBar = CLOSED_PRESSURE, sounds = mapOf(SoundSource.Air to SoundLevel.Hiss))))
         AirlockState.Opening -> {
             val childEntities = env.getChildEntities(loc, this)
             mapOf(loc to copy(state = AirlockState.Opened, atmosphere = Atmosphere(pressureBar = 0f))) +

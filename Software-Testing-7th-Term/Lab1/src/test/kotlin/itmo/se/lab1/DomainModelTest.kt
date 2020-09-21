@@ -2,8 +2,67 @@ package itmo.se.lab1
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions
+import java.lang.IllegalStateException
 
 class DomainModelTest {
+    /* Unit */
+
+    @Test
+    fun `airlock opens with a sound then loses atmosphere`() {
+        val airlock = Airlock(1.0f)
+
+        Assertions.assertEquals(AirlockState.Closed, airlock.state)
+        Assertions.assertEquals(Airlock.CLOSED_PRESSURE, airlock.atmosphere.pressureBar)
+        Assertions.assertEquals(SoundLevel.Hiss, airlock.atmosphere.sounds[SoundSource.Air])
+
+        val openingAirlock = airlock.open()
+
+        Assertions.assertEquals(AirlockState.Opening, openingAirlock.state)
+        Assertions.assertEquals(SoundLevel.Whir, openingAirlock.atmosphere.sounds[SoundSource.Mechanical])
+        Assertions.assertEquals(SoundLevel.DeafeningRoar, openingAirlock.atmosphere.sounds[SoundSource.Air])
+
+        val update = openingAirlock.update(Location(Vector3(0f,0f,0f)), Environment(emptyMap())).toList()
+        Assertions.assertEquals(1, update.size)
+        val (_, openedAirlock) = update[0]
+
+        Assertions.assertEquals(AirlockState.Opened, (openedAirlock as Airlock).state)
+        Assertions.assertTrue(openedAirlock.atmosphere.sounds.isEmpty())
+        Assertions.assertEquals(0f, openedAirlock.atmosphere.pressureBar)
+    }
+
+    @Test
+    fun `airlock closes restoring atmosphere`() {
+        val airlock = Airlock(1.0f)
+
+        val (_, openedAirlock) = airlock.open().update(Location(Vector3(0f,0f,0f)), Environment(emptyMap())).toList().first()
+        Assertions.assertEquals(AirlockState.Opened, (openedAirlock as Airlock).state)
+
+        val closingAirlock = openedAirlock.close()
+        Assertions.assertEquals(AirlockState.Closing, closingAirlock.state)
+        Assertions.assertTrue(openedAirlock.atmosphere.sounds.isEmpty()) // no sounds without atmosphere
+        Assertions.assertEquals(0f, openedAirlock.atmosphere.pressureBar)
+
+        val update = closingAirlock.update(Location(Vector3(0f,0f,0f)), Environment(emptyMap())).toList()
+        Assertions.assertEquals(1, update.size)
+        val (_, closedAirlock) = update[0]
+
+        Assertions.assertEquals(AirlockState.Closed, (closedAirlock as Airlock).state)
+        Assertions.assertEquals(SoundLevel.Hiss, closedAirlock.atmosphere.sounds[SoundSource.Air])
+        Assertions.assertFalse(closedAirlock.atmosphere.sounds.containsKey(SoundSource.Mechanical))
+        Assertions.assertEquals(Airlock.CLOSED_PRESSURE, closedAirlock.atmosphere.pressureBar)
+    }
+
+    @Test
+    fun `airlock cannot be closed while opening or opened while closing`() {
+        val openingAirlock = Airlock(1.0f, state = AirlockState.Opening)
+        Assertions.assertThrows(IllegalStateException::class.java) { openingAirlock.close() }
+
+        val closingAirlock = Airlock(1.0f, state = AirlockState.Closing)
+        Assertions.assertThrows(IllegalStateException::class.java) { closingAirlock.open() }
+    }
+
+    /* Integration */
+
     @Test
     fun `characters are located in the airlock at t=0`() {
         val env = DomainModel.STORY[FictionalTime(chapter = 7, word = 0)]!!
