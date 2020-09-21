@@ -1,5 +1,6 @@
 package itmo.se.lab1
 
+import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
 import kotlin.collections.HashMap
 import kotlin.math.pow
@@ -12,6 +13,9 @@ class Spacetime {
     operator fun get(t: FictionalTime): Environment? = contents[t]
 
     fun advance(newTime: FictionalTime, newEntities: List<Pair<Location, Entity>> = emptyList()) {
+        if (contents.containsKey(newTime))
+            throw IllegalArgumentException("Cannot advance to the same time twice, specify a different time that has not been advanced to yet")
+
         val oldEnv = contents[currentTime]
         val updatedEntities = oldEnv?.entities?.flatMap { (l, e) -> e.update(l, oldEnv).toList() }?.map { (l, e) ->
             Pair(Location(l.position + l.velocity, l.velocity), e)
@@ -22,8 +26,6 @@ class Spacetime {
 }
 
 data class Environment(val entities: Map<Location, Entity>) {
-    operator fun get(location: Location) = entities[location]
-
     fun getChildEntities(location: Location, entity: Entity): Iterable<Pair<Location, Entity>> {
         val children = mutableListOf<Pair<Location, Entity>>()
         for ((l, e) in entities)
@@ -33,9 +35,20 @@ data class Environment(val entities: Map<Location, Entity>) {
     }
 }
 
-data class FictionalTime(val chapter: Int, val word: Int)
+data class FictionalTime(val chapter: Int, val word: Int) {
+    init {
+        if (chapter < 0)
+            throw IllegalArgumentException("Chapter index must be a non-negative number")
+        if (word < 0)
+            throw IllegalArgumentException("Word index must be a non-negative number")
+    }
+}
 
 data class Vector3(val x: Float, val y: Float, val z: Float) {
+    companion object {
+        val ZERO = Vector3(0f, 0f, 0f)
+    }
+
     operator fun plus(o: Vector3) = Vector3(x + o.x, y + o.y, z + o.z)
 
     fun squaredDistance(o: Vector3) = (x - o.x).pow(2) + (y - o.y).pow(2) + (z - o.z).pow(2)
@@ -43,7 +56,7 @@ data class Vector3(val x: Float, val y: Float, val z: Float) {
 
 enum class VelocityMagnitude { Still, Moving, FlyingLikeCorkFromToyGun }
 
-data class Location(val position: Vector3, val velocity: Vector3 = Vector3(0f, 0f, 0f)) {
+data class Location(val position: Vector3, val velocity: Vector3 = Vector3.ZERO) {
     val velocityMagnitude: VelocityMagnitude
         get() {
             val magnitude = sqrt(velocity.x.pow(2) + velocity.y.pow(2) + velocity.z.pow(2))
