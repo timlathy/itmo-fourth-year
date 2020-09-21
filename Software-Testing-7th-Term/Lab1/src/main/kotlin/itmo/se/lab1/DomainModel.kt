@@ -5,38 +5,6 @@ import kotlin.collections.HashMap
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-class DomainModel {
-    companion object {
-        val STORY = Spacetime().apply {
-            // Зажужжал мотор. Тоненький свист перерос в рев воздуха, вырывающегося в черную пустоту, усеянную невероятно яркими светящимися точками.
-            // Форд и Артур вылетели в открытый космос, как конфетти из хлопушки. Глава 8
-
-            val p1 = Person("Ford", 1.0f)
-            val p2 = Person("Arthur", 1.0f)
-            val airlock = Airlock(10.0f)
-
-            advance(FictionalTime(chapter = 7, word = 0), listOf(
-                    Location(Vector3(0.0f, 0.0f, 0.0f)) to airlock,
-                    Location(Vector3(1.0f, 1.0f, 0.0f)) to p1,
-                    Location(Vector3(-1.0f, -1.0f, 0.0f)) to p2))
-
-            advance(FictionalTime(chapter = 7, word = 2), listOf(
-                    Location(Vector3(0.0f, 0.0f, 0.0f)) to airlock.open()))
-
-            val stars = List(1000) { i ->
-                val sign = if (i % 2 == 0) 1 else -1
-                val position = Vector3(1000.0f * (i + 10) * sign, 1000.0f * (i + 10) * sign, 1000.0f * i * sign)
-                val entity = CelestialObject(boundingRadius = 1000.0f * i, atmosphere = null, brightness = Float.MAX_VALUE)
-                Location(position) to entity
-            }
-
-            advance(FictionalTime(chapter = 7, word = 17), stars)
-
-            advance(FictionalTime(chapter = 8, word = 0))
-        }
-    }
-}
-
 class Spacetime {
     private val contents: MutableMap<FictionalTime, Environment> = HashMap()
     private var currentTime: FictionalTime = FictionalTime(0, 0)
