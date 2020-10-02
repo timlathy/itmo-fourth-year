@@ -3,3 +3,6 @@ x,ln,eps
 -1,NaN,0.00000001
 NaN,NaN,0.00000001
 -Infinity,NaN,0.00000001
+2,NaN,NaN
+2,NaN,Infinity
+2,NaN,-Infinity
