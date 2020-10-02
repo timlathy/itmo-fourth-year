@@ -9,10 +9,6 @@ interface IGenericTrigonometryEvaluator {
     fun sec(x: Double, eps: Double): Double
 }
 
-interface IGenericLogarithmEvaluator {
-    fun log(x: Double, base: Double, eps: Double): Double
-}
-
 class EquationSystem(
     private val trigEval: IGenericTrigonometryEvaluator,
     private val logEval: IGenericLogarithmEvaluator
