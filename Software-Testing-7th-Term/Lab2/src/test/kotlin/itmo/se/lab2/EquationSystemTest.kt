@@ -1,4 +1,4 @@
-package itmo.se.lab2.unit
+package itmo.se.lab2
 
 import itmo.se.lab2.EquationSystem
 import itmo.se.lab2.IGenericLogarithmEvaluator
