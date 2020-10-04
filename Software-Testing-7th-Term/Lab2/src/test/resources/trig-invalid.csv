@@ -1,0 +1,7 @@
+x,sin,cos,tan,cot,sec,eps
+Infinity,NaN,NaN,NaN,NaN,NaN,0.00000001
+-Infinity,NaN,NaN,NaN,NaN,NaN,0.00000001
+NaN,NaN,NaN,NaN,NaN,NaN,0.00000001
+1.57079632,NaN,NaN,NaN,NaN,NaN,NaN
+1.57079632,NaN,NaN,NaN,NaN,NaN,Infinity
+1.57079632,NaN,NaN,NaN,NaN,NaN,-Infinity

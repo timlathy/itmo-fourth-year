@@ -6,14 +6,30 @@ import org.junit.jupiter.params.provider.CsvFileSource
 
 class TrigonometryEvaluatorTest {
     @ParameterizedTest
-    @CsvFileSource(resources = ["/sin.csv"], numLinesToSkip = 1)
-    fun `it approximates sine`(x: Double, sin: Double, eps: Double) {
+    @CsvFileSource(resources = ["/trig.csv"], numLinesToSkip = 1)
+    fun `it approximates sine`(
+        x: Double,
+        sin: Double,
+        _cos: Double,
+        _tan: Double,
+        _cot: Double,
+        _sec: Double,
+        eps: Double
+    ) {
         Assertions.assertEquals(sin, TrigonometryEvaluator().sin(x, eps), eps)
     }
 
     @ParameterizedTest
-    @CsvFileSource(resources = ["/sin-invalid.csv"], numLinesToSkip = 1)
-    fun `it returns NaN when called with invalid parameters`(x: Double, sin: Double, eps: Double) {
+    @CsvFileSource(resources = ["/trig-invalid.csv"], numLinesToSkip = 1)
+    fun `it returns NaN when called with invalid parameters`(
+        x: Double,
+        sin: Double,
+        _cos: Double,
+        _tan: Double,
+        _cot: Double,
+        _sec: Double,
+        eps: Double
+    ) {
         Assertions.assertEquals(sin, TrigonometryEvaluator().sin(x, eps), 10E-6)
     }
 }

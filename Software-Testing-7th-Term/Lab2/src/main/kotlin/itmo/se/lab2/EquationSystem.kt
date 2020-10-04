@@ -2,13 +2,6 @@ package itmo.se.lab2
 
 import kotlin.math.pow
 
-interface IGenericTrigonometryEvaluator {
-    fun sin(x: Double, eps: Double): Double
-    fun tan(x: Double, eps: Double): Double
-    fun cot(x: Double, eps: Double): Double
-    fun sec(x: Double, eps: Double): Double
-}
-
 class EquationSystem(
     private val trigEval: IGenericTrigonometryEvaluator,
     private val logEval: IGenericLogarithmEvaluator
