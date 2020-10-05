@@ -1,3 +1,0 @@
-x,y,sin,tan,cot,sec,log2,log3,log5,log10,eps
-0,NaN,0,0,NaN,1,NaN,NaN,NaN,NaN,0.000001
-1,NaN,0.8415,1.5574,0.6421,1.8508,0,0,0,0,0.000001
