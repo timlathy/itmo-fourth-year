@@ -102,5 +102,27 @@ class EquationSystemTest {
             val system = EquationSystem(GenericTrigonometryEvaluator(TrigonometryEvaluator()), mockLog)
             Assertions.assertEquals(y, system.compute(x, eps), eps)
         }
+
+        @ParameterizedTest
+        @CsvFileSource(resources = ["/equation-system.csv"], numLinesToSkip = 1)
+        fun `it integrates all evaluators`(
+            x: Double,
+            y: Double,
+            _sin: Double,
+            _tan: Double,
+            _cot: Double,
+            _sec: Double,
+            _log2: Double,
+            _log3: Double,
+            _log5: Double,
+            _log10: Double,
+            eps: Double
+        ) {
+            val system = EquationSystem(
+                GenericTrigonometryEvaluator(TrigonometryEvaluator()),
+                GenericLogarithmEvaluator(LogarithmEvaluator())
+            )
+            Assertions.assertEquals(y, system.compute(x, eps), eps)
+        }
     }
 }
