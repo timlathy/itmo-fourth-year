@@ -14,6 +14,6 @@ class LogarithmEvaluatorTest {
     @ParameterizedTest
     @CsvFileSource(resources = ["/ln-invalid.csv"], numLinesToSkip = 1)
     fun `it returns NaN when called with invalid parameters`(x: Double, ln: Double, eps: Double) {
-        Assertions.assertEquals(ln, LogarithmEvaluator().ln(x, eps), 10E-6)
+        Assertions.assertEquals(ln, LogarithmEvaluator().ln(x, eps), 1E-6)
     }
 }

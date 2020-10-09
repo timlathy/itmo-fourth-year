@@ -30,6 +30,6 @@ class TrigonometryEvaluatorTest {
         _sec: Double,
         eps: Double
     ) {
-        Assertions.assertEquals(sin, TrigonometryEvaluator().sin(x, eps), 10E-6)
+        Assertions.assertEquals(sin, TrigonometryEvaluator().sin(x, eps), 1E-6)
     }
 }

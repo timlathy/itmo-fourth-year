@@ -101,10 +101,10 @@ class GenericTrigonometryEvaluatorTest {
             Mockito.`when`(mockTrigEval.sin(eq(x + Math.PI / 2), doubleThat { it.isNaN() || it.isInfinite() }))
                 .thenReturn(Double.NaN)
 
-            Assertions.assertEquals(sin, GenericTrigonometryEvaluator(mockTrigEval).sin(x, eps), 10E-6)
-            Assertions.assertEquals(tan, GenericTrigonometryEvaluator(mockTrigEval).tan(x, eps), 10E-6)
-            Assertions.assertEquals(cot, GenericTrigonometryEvaluator(mockTrigEval).cot(x, eps), 10E-6)
-            Assertions.assertEquals(sec, GenericTrigonometryEvaluator(mockTrigEval).sec(x, eps), 10E-6)
+            Assertions.assertEquals(sin, GenericTrigonometryEvaluator(mockTrigEval).sin(x, eps), 1E-6)
+            Assertions.assertEquals(tan, GenericTrigonometryEvaluator(mockTrigEval).tan(x, eps), 1E-6)
+            Assertions.assertEquals(cot, GenericTrigonometryEvaluator(mockTrigEval).cot(x, eps), 1E-6)
+            Assertions.assertEquals(sec, GenericTrigonometryEvaluator(mockTrigEval).sec(x, eps), 1E-6)
         }
     }
 
@@ -177,10 +177,10 @@ class GenericTrigonometryEvaluatorTest {
             sec: Double,
             eps: Double
         ) {
-            Assertions.assertEquals(sin, GenericTrigonometryEvaluator(TrigonometryEvaluator()).sin(x, eps), 10E-6)
-            Assertions.assertEquals(tan, GenericTrigonometryEvaluator(TrigonometryEvaluator()).tan(x, eps), 10E-6)
-            Assertions.assertEquals(cot, GenericTrigonometryEvaluator(TrigonometryEvaluator()).cot(x, eps), 10E-6)
-            Assertions.assertEquals(sec, GenericTrigonometryEvaluator(TrigonometryEvaluator()).sec(x, eps), 10E-6)
+            Assertions.assertEquals(sin, GenericTrigonometryEvaluator(TrigonometryEvaluator()).sin(x, eps), 1E-6)
+            Assertions.assertEquals(tan, GenericTrigonometryEvaluator(TrigonometryEvaluator()).tan(x, eps), 1E-6)
+            Assertions.assertEquals(cot, GenericTrigonometryEvaluator(TrigonometryEvaluator()).cot(x, eps), 1E-6)
+            Assertions.assertEquals(sec, GenericTrigonometryEvaluator(TrigonometryEvaluator()).sec(x, eps), 1E-6)
         }
     }
 }

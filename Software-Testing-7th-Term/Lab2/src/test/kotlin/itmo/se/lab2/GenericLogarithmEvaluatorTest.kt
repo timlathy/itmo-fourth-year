@@ -45,7 +45,7 @@ class GenericLogarithmEvaluatorTest {
             Mockito.`when`(mockLnEval.ln(eq(base), doubleThat { it.isNaN() || it.isInfinite() })).thenReturn(Double.NaN)
 
             val logEval = GenericLogarithmEvaluator(mockLnEval)
-            Assertions.assertEquals(y, logEval.log(x, base, eps), 10E-6)
+            Assertions.assertEquals(y, logEval.log(x, base, eps), 1E-6)
         }
     }
 
@@ -78,7 +78,7 @@ class GenericLogarithmEvaluatorTest {
         ) {
             val lnEval = LogarithmEvaluator()
             val logEval = GenericLogarithmEvaluator(lnEval)
-            Assertions.assertEquals(y, logEval.log(x, base, eps), 10E-6)
+            Assertions.assertEquals(y, logEval.log(x, base, eps), 1E-6)
         }
     }
 }

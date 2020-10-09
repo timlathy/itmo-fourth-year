@@ -9,7 +9,7 @@ interface ILogarithmEvaluator {
 
 class LogarithmEvaluator : ILogarithmEvaluator {
     override fun ln(x: Double, eps: Double): Double = when {
-        x <= 0 || x.isNaN() || eps.isNaN() || eps.isInfinite() -> {
+        x <= 0 || x <= eps || x.isNaN() || eps.isNaN() || eps.isInfinite() -> {
             Double.NaN
         }
         x == Double.POSITIVE_INFINITY -> {
