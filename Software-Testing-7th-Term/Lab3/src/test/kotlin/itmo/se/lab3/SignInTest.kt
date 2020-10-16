@@ -3,15 +3,17 @@ package itmo.se.lab3
 import itmo.se.lab3.helpers.*
 import itmo.se.lab3.pages.HomePage
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.api.TestTemplate
+import org.junit.jupiter.api.extension.ExtendWith
+import org.openqa.selenium.WebDriver
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
 
+@ExtendWith(WebDriverTemplateInvocationContextProvider::class)
 class SignInTest {
-    @ParameterizedTest
-    @CsvSource("chrome", /* firefox */)
-    fun `it allows the user to sign in via the login popup`(d: String) = withDriver(d, quitDriver = false) { driver ->
+    @TestTemplate
+    @RunWithChrome
+    fun `it allows the user to sign in via the login popup`(driver: WebDriver) {
         val homepage = HomePage(driver)
 
         assertFalse(homepage.loginPopup.isDisplayed)

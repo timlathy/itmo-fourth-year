@@ -16,6 +16,7 @@ dependencies {
     testImplementation("org.seleniumhq.selenium", "selenium-java", "3.141.59")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+tasks {
+    withType<Test> { useJUnitPlatform() }
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> { kotlinOptions { jvmTarget = "1.8" } }
 }
