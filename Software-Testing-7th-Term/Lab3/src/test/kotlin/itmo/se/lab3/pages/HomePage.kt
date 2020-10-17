@@ -4,6 +4,8 @@ import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.FindBy
 import org.openqa.selenium.support.PageFactory
+import org.openqa.selenium.support.ui.ExpectedConditions.*
+import org.openqa.selenium.support.ui.WebDriverWait
 
 class HomePage(private val driver: WebDriver) {
     @FindBy(xpath = "//div[@class=\"header\"]//a[.=\"Вход\"]")
@@ -27,5 +29,13 @@ class HomePage(private val driver: WebDriver) {
     init {
         driver["https://advego.com/"]
         PageFactory.initElements(driver, this)
+    }
+
+    fun logIn(email: String, password: String) {
+        openLoginPopupButton.click()
+        loginPopupEmailField.sendKeys(email)
+        loginPopupPasswordField.sendKeys(password)
+        loginPopupSubmitButton.click()
+        WebDriverWait(driver, 2).until(visibilityOf(userProfileLink))
     }
 }
