@@ -14,22 +14,30 @@ class ListingElement(private val driver: WebDriver, private val container: WebEl
     val title: String = container.findElement(By.xpath(".//a[@class=\"order-title\"]")).text
     val description: String = container.findElement(By.xpath(".//div[@class=\"job_desc\"]")).text
     val price = container.findElement(By.xpath("//div[@class=\"price\"]")).text.removeSuffix(" руб.").toDouble()
-    val keywords =
+
+    fun getKeywords(): List<String> =
         container.findElement(By.xpath("//div[starts-with(@id, \"tab-keywords\")]")).text.split(Regex(" \\d+, "))
 
-    private val addToCartButton: WebElement? = container.findElement(By.xpath("//a[text()=\"Отложить в корзину\"]"))
-    private val removeFromCartButton: WebElement? =
-        container.findElement(By.xpath(".//a[text()=\"Удалить из корзины\"]"))
-
     fun addToCart() {
-        addToCartButton!!.click()
+        val addButton = container.findElement(By.xpath("//a[text()=\"Отложить в корзину\"]"))
+        addButton.click()
         val statusLocator = By.xpath(".//*[contains(text(), \"добавлена в\")]")
         WebDriverWait(driver, 2).until(presenceOfNestedElementLocatedBy(container, statusLocator))
     }
 
     fun removeFromCart() {
-        removeFromCartButton!!.click()
+        val removeButton = container.findElement(By.xpath(".//a[text()=\"Удалить из корзины\"]"))
+        removeButton.click()
         val statusLocator = By.xpath(".//*[contains(text(), \"удалена из корзины\")]")
+        WebDriverWait(driver, 2).until(presenceOfNestedElementLocatedBy(container, statusLocator))
+    }
+
+    fun removeOwnListing() {
+        val removeListingButton = container.findElement(By.xpath(".//a[text()=\"Удалить\"]"))
+        removeListingButton.click()
+        val confirmButton = container.findElement(By.xpath(".//a[text()=\"Удалить статью\"]"))
+        confirmButton.click()
+        val statusLocator = By.xpath(".//*[contains(text(), \"Статья удалена\")]")
         WebDriverWait(driver, 2).until(presenceOfNestedElementLocatedBy(container, statusLocator))
     }
 }

@@ -24,7 +24,7 @@ class MarketplaceTest {
         val articles = marketPage.listItems()
         assertNotEquals(0, articles.size)
         assertEquals("Оптимальный выбор видеокарт при сборке фермы майнинга", articles[0].title)
-        assertTrue(articles[0].keywords.contains("Radeon"))
+        assertTrue(articles[0].getKeywords().contains("Radeon"))
     }
 
     @TestTemplate
