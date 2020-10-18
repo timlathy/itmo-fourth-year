@@ -1,5 +1,6 @@
 package itmo.se.lab3.pages
 
+import itmo.se.lab3.pages.elements.ListingElement
 import org.openqa.selenium.*
 import org.openqa.selenium.support.FindBy
 import org.openqa.selenium.support.PageFactory
@@ -26,20 +27,5 @@ class MarketplacePage(private val driver: WebDriver) {
         WebDriverWait(driver, 8).until(presenceOfElementLocated(itemsLocator))
     }
 
-    inner class Item(private val container: WebElement) {
-        val title: String = container.findElement(By.xpath("//a[@class=\"order-title\"]")).text
-        val price = container.findElement(By.xpath("//div[@class=\"price\"]")).text.removeSuffix(" руб.").toDouble()
-        val keywords =
-            container.findElement(By.xpath("//div[starts-with(@id, \"tab-keywords\")]")).text.split(Regex(" \\d+, "))
-        private val addToCartButton: WebElement = container.findElement(By.xpath("//a[text()=\"Отложить в корзину\"]"))
-
-        fun addToCart() {
-            addToCartButton.click()
-            val statusLocator = By.xpath(".//*[contains(text(), \"добавлена в\")]")
-            WebDriverWait(driver, 2).until(presenceOfNestedElementLocatedBy(container, statusLocator))
-        }
-    }
-
-    fun listItems(): List<Item> =
-        driver.findElements(By.xpath("//div[starts-with(@class, \"shop_row \")]")).map { Item(it) }
+    fun listItems(): List<ListingElement> = ListingElement.findAll(driver)
 }
