@@ -36,6 +36,6 @@ class HomePage(private val driver: WebDriver) {
         loginPopupEmailField.sendKeys(email)
         loginPopupPasswordField.sendKeys(password)
         loginPopupSubmitButton.click()
-        WebDriverWait(driver, 10).until(visibilityOf(userProfileLink))
+        WebDriverWait(driver, 120).until(visibilityOf(userProfileLink))
     }
 }

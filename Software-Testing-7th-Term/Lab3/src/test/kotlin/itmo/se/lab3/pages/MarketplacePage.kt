@@ -23,8 +23,8 @@ class MarketplacePage(private val driver: WebDriver) {
     }
 
     fun waitForItems() {
-        val itemsLocator = By.xpath("//div[@class=\"list\"]/*")
-        WebDriverWait(driver, 8).until(presenceOfElementLocated(itemsLocator))
+        val itemsLocator = By.xpath("//div[@class=\"list\"]/div")
+        WebDriverWait(driver, 8).until(presenceOfAllElementsLocatedBy(itemsLocator))
     }
 
     fun listItems(): List<ListingElement> = ListingElement.findAll(driver)
