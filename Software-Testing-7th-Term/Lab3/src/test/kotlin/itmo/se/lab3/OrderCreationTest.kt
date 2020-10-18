@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.openqa.selenium.WebDriver
 
 @ExtendWith(WebDriverTemplateInvocationContextProvider::class)
-class OrderCreationPageTest {
+class OrderCreationTest {
     @TestTemplate
     @RunWithChrome
     fun `it allows the user to search through templates`(driver: WebDriver) {
