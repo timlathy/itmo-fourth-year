@@ -1,0 +1,45 @@
+@startuml
+
+left to right direction
+
+actor "Вебмастер" as AWM
+actor "Пользователь" as AU
+
+rectangle ADVEGO {
+  usecase "Улучшить SEO показатели сайта" as UCSEO
+  usecase "Заработать деньги в интернете" as UCEARN
+  
+  together {
+    usecase "Проанализировать показатели\nсуществующих текстов" as UCANLZ
+    usecase "Приобрести тексты\nдля наполнения сайта" as UCBUY
+    usecase "Заказать ручную работу\nпо продвижению сайта" as UCJOB
+  }
+  together {
+    usecase "Найти работу по написанию статей\nили продвижению сайтов" as UCJOBFIND
+    usecase "Продать существующую статью" as UCSELL
+  }
+  
+  usecase "Авторизоваться в системе" as UCAUTH
+}
+
+AWM --> UCSEO
+UCSEO ..> UCANLZ : <<include>>
+UCSEO ..> UCBUY : <<include>>
+UCSEO ..> UCJOB : <<include>>
+
+AU --> UCEARN
+UCEARN ..> UCJOBFIND : <<include>>
+UCEARN ..> UCSELL : <<include>>
+
+UCBUY <.. UCAUTH : <<extend>>
+UCJOB <.. UCAUTH : <<extend>>
+UCJOBFIND <.. UCAUTH : <<extend>>
+UCSELL <.. UCAUTH : <<extend>>
+
+UCBUY -[hidden]- UCAUTH
+UCJOB -[hidden]- UCAUTH
+UCJOBFIND -[hidden]- UCAUTH
+UCSELL -[hidden]- UCAUTH
+
+@enduml
+
