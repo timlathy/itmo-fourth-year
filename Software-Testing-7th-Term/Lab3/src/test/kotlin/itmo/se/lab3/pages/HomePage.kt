@@ -1,5 +1,6 @@
 package itmo.se.lab3.pages
 
+import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.FindBy
@@ -31,11 +32,18 @@ class HomePage(private val driver: WebDriver) {
         PageFactory.initElements(driver, this)
     }
 
+    val invalidCredentialsError: WebElement
+        get() {
+            val locator = By.xpath("//*[text()=\"Неверный e-mail или пароль\"]")
+            WebDriverWait(driver, 180).until(presenceOfElementLocated(locator))
+            return driver.findElement(locator)
+        }
+
     fun logIn(email: String, password: String) {
         openLoginPopupButton.click()
         loginPopupEmailField.sendKeys(email)
         loginPopupPasswordField.sendKeys(password)
         loginPopupSubmitButton.click()
-        WebDriverWait(driver, 120).until(visibilityOf(userProfileLink))
+        WebDriverWait(driver, 180).until(visibilityOf(userProfileLink))
     }
 }

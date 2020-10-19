@@ -27,14 +27,14 @@ class ListingElement(private val driver: WebDriver, private val container: WebEl
         val addButton = container.findElement(By.xpath(".//a[text()=\"Отложить в корзину\"]"))
         addButton.click()
         val statusLocator = By.xpath(".//*[contains(text(), \"добавлена в\")]")
-        WebDriverWait(driver, 8).until(presenceOfNestedElementLocatedBy(container, statusLocator))
+        WebDriverWait(driver, 180).until(presenceOfNestedElementLocatedBy(container, statusLocator))
     }
 
     fun removeFromCart() {
         val removeButton = container.findElement(By.xpath(".//a[text()=\"Удалить из корзины\"]"))
         removeButton.click()
         val statusLocator = By.xpath(".//*[contains(text(), \"удалена из корзины\")]")
-        WebDriverWait(driver, 8).until(presenceOfNestedElementLocatedBy(container, statusLocator))
+        WebDriverWait(driver, 180).until(presenceOfNestedElementLocatedBy(container, statusLocator))
     }
 
     fun removeOwnListing() {
@@ -43,6 +43,6 @@ class ListingElement(private val driver: WebDriver, private val container: WebEl
         val confirmButton = container.findElement(By.xpath(".//a[text()=\"Удалить статью\"]"))
         confirmButton.click()
         val statusLocator = By.xpath(".//*[contains(text(), \"Статья удалена\")]")
-        WebDriverWait(driver, 8).until(presenceOfNestedElementLocatedBy(container, statusLocator))
+        WebDriverWait(driver, 180).until(presenceOfNestedElementLocatedBy(container, statusLocator))
     }
 }

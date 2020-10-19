@@ -17,4 +17,16 @@ class SignInTest {
         homepage.logIn(UserCredentials.email, UserCredentials.password)
         assertEquals(UserCredentials.username, homepage.userProfileLink.text)
     }
+
+    @TestTemplate
+    @RunWithChrome
+    @RunWithFirefox
+    fun `it shows an error message when the user enters incorrect credentials`(driver: WebDriver) {
+        val homepage = HomePage(driver)
+        homepage.openLoginPopupButton.click()
+        homepage.loginPopupEmailField.sendKeys(UserCredentials.email)
+        homepage.loginPopupPasswordField.sendKeys(UserCredentials.password + "...")
+        homepage.loginPopupSubmitButton.click()
+        assertTrue(homepage.invalidCredentialsError.isDisplayed)
+    }
 }

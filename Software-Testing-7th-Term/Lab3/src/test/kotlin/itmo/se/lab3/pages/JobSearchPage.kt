@@ -28,13 +28,13 @@ class JobSearchPage(private val driver: WebDriver) {
 
         val checkboxLocator =
             By.xpath("//label[text()=\"Тип работы:\"]/following-sibling::div//div[contains(@class, \"ui-dropdownchecklist-item\")]")
-        WebDriverWait(driver, 8).until(visibilityOfElementLocated(checkboxLocator))
+        WebDriverWait(driver, 180).until(visibilityOfElementLocated(checkboxLocator))
         return driver.findElements(checkboxLocator).map { CheckboxElement(it) }
     }
 
     fun waitForItems() {
         val itemsLocator = By.xpath("//div[@class=\"list\"]/*")
-        WebDriverWait(driver, 8).until(presenceOfElementLocated(itemsLocator))
+        WebDriverWait(driver, 180).until(presenceOfElementLocated(itemsLocator))
     }
 
     fun listItems(): List<ListingElement> = ListingElement.findAll(driver)
