@@ -12,6 +12,7 @@ import org.openqa.selenium.WebDriver
 class JobSearchTest {
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to sort jobs by price`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)
@@ -28,6 +29,7 @@ class JobSearchTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to filter jobs by category`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)
@@ -36,14 +38,11 @@ class JobSearchTest {
         val jobs = jobPage.listItems()
         assertNotEquals("TEXT / Новая тема в форуме", jobs[0].getCategory())
 
-        var categoryCheckbox = jobPage.getCategories().find { it.text == "TEXT / Новая тема в форуме" }!!
+        val categoryCheckbox = jobPage.getCategories().find { it.text == "TEXT / Новая тема в форуме" }!!
         assertFalse(categoryCheckbox.checked)
         categoryCheckbox.toggle()
         jobPage.searchButton.click()
         jobPage.waitForItems()
-
-        categoryCheckbox = jobPage.getCategories().find { it.text == "TEXT / Новая тема в форуме" }!!
-        assertTrue(categoryCheckbox.checked)
 
         val jobsByCategory = jobPage.listItems()
         for (job in jobsByCategory)

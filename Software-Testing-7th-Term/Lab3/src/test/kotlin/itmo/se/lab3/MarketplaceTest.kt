@@ -1,6 +1,7 @@
 package itmo.se.lab3
 
 import itmo.se.lab3.helpers.RunWithChrome
+import itmo.se.lab3.helpers.RunWithFirefox
 import itmo.se.lab3.helpers.UserCredentials
 import itmo.se.lab3.helpers.WebDriverTemplateInvocationContextProvider
 import itmo.se.lab3.pages.HomePage
@@ -15,6 +16,7 @@ import org.openqa.selenium.WebDriver
 class MarketplaceTest {
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to filter articles by keywords`(driver: WebDriver) {
         val marketPage = MarketplacePage(driver)
         marketPage.keywordsField.sendKeys("radeon")
@@ -29,6 +31,7 @@ class MarketplaceTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to sort articles by price`(driver: WebDriver) {
         val marketPage = MarketplacePage(driver)
 
@@ -44,6 +47,7 @@ class MarketplaceTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to add articles to cart`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)

@@ -11,6 +11,7 @@ import org.openqa.selenium.WebDriver
 class ListingCreationTest {
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to add articles to cart`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)

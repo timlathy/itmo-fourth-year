@@ -25,7 +25,7 @@ class SeoAnalysisPage(private val driver: WebDriver) {
 
     fun submitText() {
         textSubmitButton.click()
-        WebDriverWait(driver, 2).until(presenceOfElementLocated(By.xpath("//h3[.=\"Статистика текста\"]")))
+        WebDriverWait(driver, 8).until(presenceOfElementLocated(By.xpath("//h3[.=\"Статистика текста\"]")))
     }
 
     data class SpellingError(val word: String, val suggestedCorrection: String)

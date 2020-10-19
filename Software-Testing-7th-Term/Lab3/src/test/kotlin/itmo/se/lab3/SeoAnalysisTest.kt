@@ -1,6 +1,7 @@
 package itmo.se.lab3
 
 import itmo.se.lab3.helpers.RunWithChrome
+import itmo.se.lab3.helpers.RunWithFirefox
 import itmo.se.lab3.helpers.WebDriverTemplateInvocationContextProvider
 import itmo.se.lab3.pages.SeoAnalysisPage
 import itmo.se.lab3.pages.SeoAnalysisPage.*
@@ -13,6 +14,7 @@ import org.openqa.selenium.WebDriver
 class SeoAnalysisTest {
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it spell checks user-provided texts in russian`(driver: WebDriver) {
         val seoPage = SeoAnalysisPage(driver)
         seoPage.textInput.sendKeys("Тоненкий свист перерос в рев восдуха, вырывающевося в черную пустоту")
@@ -28,6 +30,7 @@ class SeoAnalysisTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it spell checks user-provided texts in english`(driver: WebDriver) {
         val seoPage = SeoAnalysisPage(driver)
         seoPage.languageSelector.selectByVisibleText("English")
@@ -43,6 +46,7 @@ class SeoAnalysisTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it provides character and word statistics`(driver: WebDriver) {
         val seoPage = SeoAnalysisPage(driver)
         seoPage.languageSelector.selectByVisibleText("English")
@@ -57,6 +61,7 @@ class SeoAnalysisTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it analyzes word frequencies ignoring stop words`(driver: WebDriver) {
         val seoPage = SeoAnalysisPage(driver)
         seoPage.languageSelector.selectByVisibleText("English")

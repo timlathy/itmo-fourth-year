@@ -33,7 +33,9 @@ class OrderCreationPage(private val driver: WebDriver) {
     init {
         driver["https://advego.com/order/add/#order-add"]
 
-        val dynamicContentLocator = By.xpath("//label[text()=\"Название заказа: \"]")
+        var dynamicContentLocator = By.xpath("//div[contains(text(), \"Загружен шаблон:\")]")
+        WebDriverWait(driver, 8).until(presenceOfElementLocated(dynamicContentLocator))
+        dynamicContentLocator = By.xpath("//label[text()=\"Название заказа: \"]")
         WebDriverWait(driver, 8).until(presenceOfElementLocated(dynamicContentLocator))
 
         PageFactory.initElements(driver, this)
@@ -42,8 +44,8 @@ class OrderCreationPage(private val driver: WebDriver) {
     fun openTemplates() {
         templateDropdownButton.click()
         val itemsLocator = By.xpath("//h4[.=\"Готовые шаблоны\"]/following-sibling::ul")
-        WebDriverWait(driver, 2).until(presenceOfElementLocated(itemsLocator))
-        WebDriverWait(driver, 2).until(visibilityOf(templateSearchField))
+        WebDriverWait(driver, 8).until(presenceOfElementLocated(itemsLocator))
+        WebDriverWait(driver, 8).until(visibilityOf(templateSearchField))
     }
 
     fun selectTemplate(template: WebElement) {

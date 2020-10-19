@@ -1,6 +1,7 @@
 package itmo.se.lab3
 
 import itmo.se.lab3.helpers.RunWithChrome
+import itmo.se.lab3.helpers.RunWithFirefox
 import itmo.se.lab3.helpers.WebDriverTemplateInvocationContextProvider
 import itmo.se.lab3.helpers.value
 import itmo.se.lab3.pages.OrderCreationPage
@@ -13,6 +14,7 @@ import org.openqa.selenium.WebDriver
 class OrderCreationTest {
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it allows the user to search through templates`(driver: WebDriver) {
         val orderPage = OrderCreationPage(driver)
         assertEquals("Базовый шаблон (копирайтинг)", orderPage.templateDropdownButton.text)
@@ -27,6 +29,7 @@ class OrderCreationTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it shows default order parameters when the page is opened`(driver: WebDriver) {
         val orderPage = OrderCreationPage(driver)
         assertEquals("Базовый шаблон (копирайтинг)", orderPage.templateDropdownButton.text)
@@ -37,6 +40,7 @@ class OrderCreationTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it fills in order parameters based on the selected template`(driver: WebDriver) {
         val orderPage = OrderCreationPage(driver)
         assertEquals("Базовый шаблон (копирайтинг)", orderPage.templateDropdownButton.text)
