@@ -76,6 +76,7 @@ class SeoAnalysisTest {
 
     @TestTemplate
     @RunWithChrome
+    @RunWithFirefox
     fun `it shows an error message when the text is empty`(driver: WebDriver) {
         val seoPage = SeoAnalysisPage(driver)
         seoPage.textSubmitButton.click()

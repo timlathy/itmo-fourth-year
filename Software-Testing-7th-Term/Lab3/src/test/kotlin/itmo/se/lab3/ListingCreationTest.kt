@@ -12,7 +12,7 @@ class ListingCreationTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to add articles to cart`(driver: WebDriver) {
+    fun `it allows users to submit new articles to marketplace`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)
 

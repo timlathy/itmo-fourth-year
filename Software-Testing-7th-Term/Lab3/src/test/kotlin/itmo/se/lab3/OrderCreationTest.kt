@@ -15,7 +15,7 @@ class OrderCreationTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to search through templates`(driver: WebDriver) {
+    fun `it allows users to search through templates`(driver: WebDriver) {
         val orderPage = OrderCreationPage(driver)
         assertEquals("Базовый шаблон (копирайтинг)", orderPage.templateDropdownButton.text)
         assertEquals(0, orderPage.displayedTemplates.size)

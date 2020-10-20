@@ -13,7 +13,7 @@ class JobSearchTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to sort jobs by price`(driver: WebDriver) {
+    fun `it allows users to sort jobs by price`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)
 
@@ -30,7 +30,7 @@ class JobSearchTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to filter jobs by category`(driver: WebDriver) {
+    fun `it allows users to filter jobs by category`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)
 

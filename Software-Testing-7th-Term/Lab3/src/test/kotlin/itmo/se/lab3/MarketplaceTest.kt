@@ -17,7 +17,7 @@ class MarketplaceTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to filter articles by keywords`(driver: WebDriver) {
+    fun `it allows users to filter articles by keywords`(driver: WebDriver) {
         val marketPage = MarketplacePage(driver)
         marketPage.keywordsField.sendKeys("radeon")
         marketPage.searchButton.click()
@@ -32,7 +32,7 @@ class MarketplaceTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to sort articles by price`(driver: WebDriver) {
+    fun `it allows users to sort articles by price`(driver: WebDriver) {
         val marketPage = MarketplacePage(driver)
 
         val topItemPriceWithoutSorting = marketPage.listItems().first().price
@@ -48,7 +48,7 @@ class MarketplaceTest {
     @TestTemplate
     @RunWithChrome
     @RunWithFirefox
-    fun `it allows the user to add articles to cart`(driver: WebDriver) {
+    fun `it allows users to add articles to cart`(driver: WebDriver) {
         val homePage = HomePage(driver)
         homePage.logIn(UserCredentials.email, UserCredentials.password)
 
