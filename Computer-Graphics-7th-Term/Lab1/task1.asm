@@ -34,8 +34,7 @@ mov al, 0x3
 mov bx, 0xa2
 mov [es:bx], al
 
-xor ah, ah ; read key
+; Wait for a single key press and terminate the programm
+xor ah, ah
 int 0x16
-
-int 0x20 ; terminate program
-
+int 0x20
