@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+module Enumerable
+  def each_cons_with_stride(window, stride)
+    array = []
+    each do |e|
+      array << e
+      if array.size == window
+        yield array.dup
+        stride.times { array.shift }
+      end
+    end
+  end
+end
+
+require 'nokogiri'
+
+svg = File.open('test.svg') { |f| Nokogiri::XML(f) }
+svg.css('path').each do |path|
+  m = path['d'].match(/M (\d+),(\d+) C (.+)/)
+  points = (m[1..2] + m[3].split(/[, ]/)).map(&:to_i)
+
+  puts '; ' + path["d"]
+  points.each_cons_with_stride(8, 6) do |curve_pts|
+    puts 'dw ' + curve_pts.join(',')
+  end
+end

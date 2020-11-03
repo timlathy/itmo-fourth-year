@@ -19,7 +19,22 @@ init_color:
   mov ax, 0x0602
   out dx, ax
 
-call draw_bezier_curve
+prologue:
+  xor ax, ax
+  push ax
+
+main_loop:
+  shl ax, 4 ; ax <- 16*ctr (16 bytes per curve)
+  add ax, bezier_curves
+  mov word [bezier_curve_addr], ax
+
+  call draw_bezier_curve
+
+  pop ax
+  inc ax
+  push ax
+  cmp ax, word [bezier_curves_cnt]
+  jb main_loop
 
 end:
   ; Wait for a single key press and terminate the program
@@ -33,7 +48,21 @@ end:
 
 section .rodata
 
-bezier_curve: dw 79,237,181,97,305,371,400,250
+bezier_curves_cnt: dw 8
+
+bezier_curves:
+; M 140,133 C 107,132 98,265 55,257 24,252 39,211 57,208 74,206 62,227 62,227 66,214 58,206 41,222
+dw 140,133,107,132,98,265,55,257
+dw 55,257,24,252,39,211,57,208
+dw 57,208,74,206,62,227,62,227
+dw 62,227,66,214,58,206,41,222
+; M 71,253 C 120,225 107,142 140,133
+dw 71,253,120,225,107,142,140,133
+; M 134,138 C 134,138 89,264 150,252
+dw 134,138,134,138,89,264,150,252
+; M 134,138 C 84,246 130,254 142,254 150,254 157,248 161,243
+dw 134,138,84,246,130,254,142,254
+dw 142,254,150,254,157,248,161,243
 
 bezier_3f: dd 3.0
 bezier_t_increment: dd 0.01
@@ -59,13 +88,13 @@ line_start_py: dw 0
 section .text
 
 ; parameters:
-; * [bezier_curve] - used by quadratic_bezier
+; * [bezier_curve_addr] - used by cubic_bezier
 draw_bezier_curve:
   fld dword [bezier_t_increment]
   fldz    ; st0 <- t(=0), st1 <- inc
 
-  fld st0 ; quadratic_bezier consumes st0 (t)
-  call quadratic_bezier
+  fld st0 ; cubic_bezier consumes st0 (t)
+  call cubic_bezier
 
 draw_bezier_curve_loop:
   mov ax, word [bezier_px]
@@ -73,8 +102,8 @@ draw_bezier_curve_loop:
   mov ax, word [bezier_py]
   mov word [line_start_py], ax
 
-  fld st0 ; quadratic_bezier consumes st0 (t)
-  call quadratic_bezier
+  fld st0 ; cubic_bezier consumes st0 (t)
+  call cubic_bezier
 
   call draw_line
 
@@ -223,11 +252,15 @@ draw_line_end:
 ; p(t) = (1.0f-t)*(1.0f-t)*(1.0f-t)*p0 + 3*(1.0f-t)*(1.0f-t)*t*p1 + 3*(1.0f-t)*t*t*p2 + t*t*t*p3 
 ; parameters:
 ; * fpu st0 - t
-; * [bezier_curve] - an array of [p0x,p0y,p1x,p1y,p2x,p2y,p3x,p3y] signed 16-bit integers
+; * [bezier_curve_addr] - address of an array of [p0x,p0y,p1x,p1y,p2x,p2y,p3x,p3y] signed 16-bit integers
 ; return values:
 ; * [bezier_px] - p(t).x
 ; * [bezier_py] - p(t).y 
-quadratic_bezier:
+; clobbers:
+; * bx
+cubic_bezier:
+  mov bx, word [bezier_curve_addr]
+
   fld1
   fsub st0, st1 ; st0 <- (1-t), st1 <- t
   fld st0       ; st0, st1 <- (1-t), st2 <- t
@@ -246,33 +279,33 @@ quadratic_bezier:
   fmulp st4, st0 ; st0 <- (1-t)^3, st1 <- 3*(1-t)^2*t, st2 <- 3*(1-t)*t*t, st3 <- t*t*t
 
   fld st0 ; st0, st1 <- (1-t)^3
-  fimul word [bezier_curve] ; st0 <- (1-t)^3*p0x
+  fimul word [bx] ; st0 <- (1-t)^3*p0x
   fxch st1
-  fimul word [bezier_curve+2] ; st0 <- (1-t)^3*p0y
+  fimul word [bx+2] ; st0 <- (1-t)^3*p0y
   
   fxch st2 ; st0 <- 3*(1-t)^2*t, st1 <- (1-t)^3*p0x, st2 <- (1-t)^3*p0y
   fld st0
-  fimul word [bezier_curve+4] ; st0 <- 3*(1-t)^2*t*p1x, st1 <- 3*(1-t)^2*t
+  fimul word [bx+4] ; st0 <- 3*(1-t)^2*t*p1x, st1 <- 3*(1-t)^2*t
   fxch st1
-  fimul word [bezier_curve+6] ; st0 <- 3*(1-t)^2*t*p1y, st1 <- 3*(1-t)^2*t*p1x
+  fimul word [bx+6] ; st0 <- 3*(1-t)^2*t*p1y, st1 <- 3*(1-t)^2*t*p1x
 
   faddp st3, st0 ; st0 <- 3*(1-t)^2*t*p1x, st1 <- (1-t)^3*p0x, st2 <- p(p0y, p1y)
   faddp ; st0 <- p(p0x, p1x), st1 <- p(p0y, p1y)
 
   fxch st2 ; st0 <- 3*(1-t)*t*t, st1 <- p(p0y, p1y), st2 <- p(p0x, p1x)
   fld st0
-  fimul word [bezier_curve+8]
+  fimul word [bx+8]
   fxch st1
-  fimul word [bezier_curve+10] ; st0 <- 3*(1-t)*t*t*p2y, st1 <- 3*(1-t)*t*t*p2x
+  fimul word [bx+10] ; st0 <- 3*(1-t)*t*t*p2y, st1 <- 3*(1-t)*t*t*p2x
 
   faddp st2, st0 ; st0 <- 3*(1-t)*t*t*p2x, st1 <- p(p0y, p1y, p2y)
   faddp st2, st0 ; st0 <- p(p0y, p1y, p2y), st1 <- p(p0x, p1x, p2x)
 
   fxch st2 ; st0 <- t*t*t, st1 <- p(p0x, p1x, p2x), st2 <- p(p0y, p1y, p2y)
   fld st0
-  fimul word [bezier_curve+12]
+  fimul word [bx+12]
   fxch st1
-  fimul word [bezier_curve+14] ; st0 <- t*t*t*p3y, st1 <- t*t*t*p3x
+  fimul word [bx+14] ; st0 <- t*t*t*p3y, st1 <- t*t*t*p3x
 
   faddp st3, st0 ; st0 <- t*t*t*p3x, st1 <- p(p0x, p1x, p2x), st2 <- p(p0y, p1y, p2y, p3y)
   faddp ; st0 <- p(p0x, p1x, p2x, p3x), st1 <- p(p0y, p1y, p2y, p3y)
