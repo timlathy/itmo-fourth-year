@@ -19,6 +19,9 @@ init_color:
   mov ax, 0x0602
   out dx, ax
 
+call flood_fill
+jmp end
+
 prologue:
   xor ax, ax
   push ax
@@ -82,7 +85,7 @@ line_start_px: dw 0
 line_start_py: dw 0
 
 ; =============================================================================
-; ================================ SUBROUTINES ================================
+; =============================== LINE DRAWING ================================
 ; =============================================================================
 
 section .text
@@ -119,10 +122,11 @@ draw_bezier_curve_loop:
 ; parameters:
 ; * ax - row
 ; * cx - col
-; clobbers:
-; * dx
-; * di
-draw_pixel:
+; returns:
+; * di - row*80 + col/8 (octet offset)
+; * dx - col/8
+; * cx - col%8 (bit offset)
+compute_pixel_pos:
 	mov dx, 80
 	mul dx ; dx:ax <- row*80
 
@@ -132,6 +136,18 @@ draw_pixel:
 
 	add ax, dx ; ax <- row*80 + col/8 (octet offset)
 	mov di, ax ; di <- octet offset
+  ret
+
+; =============================================================================
+
+; parameters:
+; * ax - row
+; * cx - col
+; clobbers:
+; * dx
+; * di
+draw_pixel:
+  call compute_pixel_pos
 
   neg cl
   add cl, 7 ; cl <- 7-col%8
@@ -139,15 +155,25 @@ draw_pixel:
   mov ah, 1
   shl ah, cl ; ah <- 2^(7-col%8)
 
+  jmp draw_mask
+
+; =============================================================================
+
+; parameters:
+; * [es:di] - octet offset
+; * ah - pixel mask
+; clobbers:
+; * dx
+draw_mask:
 	; Set the bit mask graphics register (index 0x08 at port 0x3ce)
   ; to the bits we want to set to 1
 	mov dx, 0x3ce
   mov al, 0x8
 	out dx, ax
-
+  ; Fill the latch registers first to preserve pixels outside the mask
+  ; (0 bits in the mask are taken from the latches)
   mov al, byte [es:di]
 	mov byte [es:di], 0xff
-
   ret
 
 ; =============================================================================
@@ -312,5 +338,131 @@ cubic_bezier:
 
   fistp word [bezier_px]
   fistp word [bezier_py]
+
+  ret
+
+; =============================================================================
+; ================================= FLOOD FILL ================================
+; =============================================================================
+
+ff_leftmost_bit: db 0
+ff_rightmost_bit: db 0
+
+ff_col_left: dw 0
+ff_col_right: dw 0
+
+; parameters:
+; * ax - starting row
+; * cx - starting col
+; clobbers:
+; * ???
+flood_fill:
+  ; test
+  mov ax, 0
+  mov cx, 3
+
+  ;call draw_pixel
+
+  push ax
+  push cx
+
+  mov ah, 0b0010_0011
+  mov di, 0
+  call draw_mask
+
+  ; Reading from video memory should compare the color of each pixel
+  ; in the octet with the boundary color and return a bitset:
+  mov ax, 0x6 ; boundary color (hardcoded for now)
+  call flood_fill_init_color_comp
+
+  pop cx ; cx <- col
+  pop ax ; ax <- row
+
+  call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
+  mov al, byte [es:di] ; compare against the target color (0 = unfilled, 1 = filled)
+  
+  call flood_fill_find_fill_mask
+  mov ah, bl ; ah <- mask
+  call draw_mask
+  
+  xor ah, ah
+  int 0x16
+  int 0x20
+
+  ret
+
+; =============================================================================
+
+; parameters:
+; * al - color comparison bitset (1 = boundary color, 0 = to fill)
+; * cl - starting pixel's index (col % 8)
+; returns:
+; * bl - fill mask. examples:
+;     al = 0010 _0_011, cl = 3, bx = 00011100 
+;     al = 0101 010_0_, cl = 0, bx = 00000011
+;     al = _0_001 0100, cl = 7, bx = 11100000
+flood_fill_find_fill_mask:
+  mov ah, al ; ah <- copy of the resulting bitset
+  mov ch, cl ; ch <- copy of the starting pixel's bit index
+
+; Keep in mind that pixels in the octet go from right to left
+
+ffffm_leftmost_bit:
+  mov bl, -1 ; bl <- inverted mask of pixels to color in the current octet
+  inc cl
+  rcr al, cl ; starting bit is in carry
+ffffm_leftmost_bit_loop:
+  rcl bl, 1  ; mask <- next 0 bit
+  dec cl
+  jz ffffm_found_leftmost_bit
+  rcl al, 1  ; next bit to the left is in carry
+  jnc ffffm_leftmost_bit_loop
+ffffm_found_leftmost_bit:
+  rol bl, cl ; align mask by starting bit
+
+ffffm_rightmost_bit:
+  mov bh, -1 ; bl <- inverted mask of pixels to color in the current octet
+  mov al, ah ; al <- bitset
+  mov cl, 8
+  sub cl, ch ; cl <- 8 - starting bit
+  rcl al, cl ; starting bit is in carry
+ffffm_rightmost_bit_loop:
+  rcr bh, 1  ; mask <- next 0 bit
+  dec cl
+  jz ffffm_found_rightmost_bit
+  rcr al, 1  ; next bit to the right is in carry
+  jnc ffffm_rightmost_bit_loop
+ffffm_found_rightmost_bit:
+  ror bh, cl ; align mask by starting bit
+  not bx     ; invert masks
+  or bl, bh  ; combine masks
+  ret
+
+; =============================================================================
+
+; parameters:
+; * ax - boundary color
+; clobbers:
+; * dx
+flood_fill_init_color_comp:
+  ; Initialize color compare register (0x02 at 0x3ce) with the boundary color
+  mov dx, 0x3ce
+  mov ah, al
+  mov al, 0x2
+  out dx, ax
+
+  ; Read graphics mode register (0x05 at 0x3ce)
+  mov al, 0x5
+  out dx, al
+  inc dx
+  in al, dx
+
+  or al, 0b1000 ; read mode (bit 3) = compare between display memory and reg 0x2
+
+  ; Save the updated graphics mode
+  mov dx, 0x3ce
+  mov ah, al
+  mov al, 0x5
+  out dx, ax
 
   ret
