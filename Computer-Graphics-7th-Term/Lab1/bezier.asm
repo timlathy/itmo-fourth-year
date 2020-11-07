@@ -19,6 +19,31 @@ init_color:
   mov ax, 0x0602
   out dx, ax
 
+testtt:
+  nop
+  mov ah, 0b1010_1000
+  mov di, 0
+  call draw_mask
+  mov ah, 0b1010_0010
+  mov di, 1
+  call draw_mask
+  
+  mov word [ff_leftmost_filled], 1
+  mov word [ff_rightmost_filled], 12
+
+  xor ah, ah
+  int 0x16
+
+  mov ax, 0x6  
+  call flood_fill_init_color_comp
+  
+; * ax - row
+; * [ff_leftmost_filled]
+; * [ff_rightmost_filled]
+  xor ax, ax
+  call scan_row
+  jmp end
+
 call flood_fill
 jmp end
 
@@ -345,6 +370,218 @@ cubic_bezier:
 ; ================================= FLOOD FILL ================================
 ; =============================================================================
 
+ff_row: dw 0
+ff_col: dw 0
+
+ff_leftmost_bit: db 0
+ff_rightmost_bit: db 0
+
+ff_leftmost_filled: dw 0
+ff_rightmost_filled: dw 0
+
+; parameters:
+; * ax - starting row
+; * cx - starting col
+; clobbers:
+; * ???
+flood_fill:
+  ; test
+  mov ah, 0b0010_0000
+  mov di, 0
+  call draw_mask
+
+  mov ah, 0b0000_1000
+  mov di, 5
+  call draw_mask
+
+  mov ax, 0
+  mov cx, 8*3-1
+  ; endtest
+
+  mov ax, 0x40
+  bsf ax, ax
+
+  mov word [ff_row], ax
+  mov word [ff_col], cx
+
+  ; Reading from video memory should compare the color of each pixel
+  ; in the octet with the boundary color and return a bitset:
+  mov ax, 0x6 ; boundary color (hardcoded for now)
+  call flood_fill_init_color_comp
+
+  xor ah, ah
+  int 0x16
+
+  mov ax, word [ff_row]
+  mov cx, word [ff_col]
+  call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
+
+  mov al, byte [es:di]   ; compare against the target color (0 = unfilled, 1 = filled)
+  nop
+  call flood_fill_find_fill_mask
+  mov ah, bl ; ah <- mask
+  call draw_mask
+
+.set_lm_rm_filled_cols_to_octet_bits:
+  mov cx, word [ff_col]
+  and cl, 0xf8 ; cx <- col divisible by 8
+  movzx ax, byte [ff_leftmost_bit]
+  add ax, cx
+  mov word [ff_leftmost_filled], ax
+  movzx ax, byte [ff_rightmost_bit]
+  add ax, cx
+  mov word [ff_rightmost_filled], ax
+  
+  push di
+
+.fill_row_to_left:
+  cmp byte [ff_leftmost_bit], 7 ; was the leftmost bit in the octet filled?
+  jne .fill_row_to_right        ; if not, we don't need to fill to the left
+  call flood_fill_to_left       ; ! cx should be col divisible by 8 here !
+  mov word [ff_leftmost_filled], cx
+
+  xor ah, ah
+  int 0x16
+  
+.fill_row_to_right:
+  cmp byte [ff_rightmost_bit], 0 ; was the rightmost bit in the octet filled?
+  jne .pick_neighbors
+  mov bp, sp
+  mov di, [bp] ; restore di without popping it off the stack
+  mov cx, word [ff_col]
+  and cl, 0x8 ; cx <- starting col divisible by 8
+  call flood_fill_to_right
+  mov word [ff_rightmost_filled], cx
+
+.pick_neighbors:
+  xor ah, ah
+  int 0x16
+  int 0x20
+
+  ret
+
+; =============================================================================
+
+; parameters:
+; * al - color comparison bitset (1 = boundary color, 0 = to fill)
+; * cl - starting pixel's index (col % 8)
+; returns:
+; * [ff_leftmost_bit] - index of the leftmost bit
+; * [ff_rightmost_bit] - index of the rightmost bit
+; * bl - fill mask
+; examples:
+; * al = 0010 _0_011, cl = 3 => bx = 00011100, [lm] = 4, [rm] = 2
+; * al = 0101 010_0_, cl = 0 => bx = 00000011, [lm] = 1, [rm] = 0
+; * al = _0_001 0100, cl = 7 => bx = 11100000, [lm] = 7, [rm] = 5
+flood_fill_find_fill_mask:
+  mov ah, al ; ah <- copy of the resulting bitset
+  mov ch, cl ; ch <- copy of the starting pixel's bit index
+
+.leftmost_bit:
+  mov bl, -1 ; bl <- inverted mask of pixels to color in the current octet
+  mov cl, 8
+  sub cl, ch ; cl <- 8 - starting bit
+  rcl al, cl ; starting bit is in carry
+.leftmost_loop:
+  rcr bl, 1  ; mask <- next 0 bit
+  dec cl
+  jz .leftmost_found
+  rcr al, 1  ; CF <- next pixel
+  jnc .leftmost_loop
+.leftmost_found:
+  ror bl, cl ; align mask to octet
+  neg cl
+  add cl, 7  ; cl <- 7 - shift (leftmost bit index)
+  mov byte [ff_leftmost_bit], cl
+
+.rightmost_bit:
+  mov bh, -1 ; bl <- inverted mask of pixels to color in the current octet
+  mov al, ah ; al <- bitset
+  mov cl, ch
+  inc cl     ; cl <- bit index + 1
+  rcr al, cl ; starting bit is in carry
+.rightmost_loop:
+  rcl bh, 1  ; mask <- next 0 bit
+  dec cl
+  jz .rightmost_found
+  rcl al, 1  ; CF <- next pixel
+  jnc .rightmost_loop
+.rightmost_found:
+  rol bh, cl ; align mask to octet
+  mov byte [ff_rightmost_bit], cl
+.invert_and_combine_masks:
+  not bx    
+  or bl, bh 
+  ret
+
+; =============================================================================
+
+scan_row_row: dw 0
+
+; parameters:
+; * ax - row
+; * [ff_leftmost_filled]
+; * [ff_rightmost_filled]
+; pushes on stack:
+; * pairs of (row, col) for all rightmost pixels to be filled
+; clobbers:
+; * everything
+scan_row:
+  pop si ; si <- return address (the stack will be filled with return values)
+  mov word [scan_row_row], ax
+  mov cx, word [ff_rightmost_filled]
+  call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
+  shl dx, 3 ; dx <- col divisible by 8
+.first_iter:
+  mov al, byte [es:di]
+  mov ah, 0x80
+  sar ah, cl ; ah <- mask with zeroes to the right of the rightmost filled col
+  and al, ah ; al <- comparison bitset with bits past col set to 0
+  xor bx, bx
+  jmp .check_col_against_leftmost
+.loop:
+  sub dx, 8  ; col <- col - 8
+  js .loop_end
+.load_octet:
+  dec di
+  mov al, byte [es:di] ; cx <- bit, dx <- col/8
+.check_col_against_leftmost:
+  mov cx, word [ff_leftmost_filled]
+  cmp dx, cx
+  ja .check_octet
+  ; this octet contains the leftmost pixel, we need to mask before checking
+  mov ah, 0x80
+  sar ah, cl   ; ah <- mask with ones to the left of the leftmost filled col
+  or al, ah    ; al <- comparison bitset with bits past lm col set to 1
+  xor dx, dx   ; this is the last iteration
+.check_octet:
+  xor cx, cx
+.loop_octet:
+  bt ax, cx  ; CF <- next pixel
+  jc .boundary_bit
+  test bl, bl ; bl is set to 1 if the previous bit was 1
+  jz .loop_octet_next
+  ; if the bit is 0 but bl is 1, push the current pixel
+  push word [scan_row_row] ; --- push row
+  mov bx, cx
+  neg bx
+  add bx, 7  ; bx <- 7 - bit
+  add bx, dx ; bx <- col/8*8 + 7 - bit 
+  push bx    ; ----------------- push col
+  xor bx, bx ; bl <- 0
+  jmp .loop_octet_next
+.boundary_bit:
+  mov bl, 1
+.loop_octet_next:
+  inc cx
+  cmp cx, 8
+  je .loop
+  jmp .loop_octet
+.loop_end:
+  jmp si
+
+; =============================================================================
+
 ; parameters:
 ; * [es:di] - octet offset
 ; * cx - col, should be a multiple of 8
@@ -369,15 +606,15 @@ flood_fill_to_left:
   add cx, 8  
   jmp .done
 .find_bit_boundary:
-  ; example: 00001000 -> 00001111, col += 5
+  ; example: 00001000 -> 00001111, col += 3
   mov dx, cx ; dx <- col/8
-  xor cx, cx
+  mov cx, -1 ; -1 to exclude the boundary
 .octet_loop:
   inc cx
   rcr al, 1  ; CR <- rightmost pixel (boundary is on the left)
   jnc .octet_loop
   sub dx, cx
-  add dx, 8  ; dx <- col/8 + 8 - col%8
+  add dx, 8  ; dx <- leftmost filled column excluding boundary
 .make_octet_mask:
   mov ah, 1
   shl ah, cl
@@ -388,116 +625,48 @@ flood_fill_to_left:
 .done:
   ret
 
-ff_row: dw 0
-ff_col: dw 0
-
-ff_leftmost_filled: dw 0
-ff_rightmost_filled: dw 0
-
-ff_octet_mask: db 0
-
-; parameters:
-; * ax - starting row
-; * cx - starting col
-; clobbers:
-; * ???
-flood_fill:
-  ; test
-  mov ah, 0b0010_0000
-  mov di, 0
-  call draw_mask
-
-  mov ah, 0b0000_0100
-  mov di, 1
-  call draw_mask
-
-  mov ax, 0
-  mov cx, 8+4
-  ; endtest
-
-  mov word [ff_row], ax
-  mov word [ff_col], cx
-
-  ; Reading from video memory should compare the color of each pixel
-  ; in the octet with the boundary color and return a bitset:
-  mov ax, 0x6 ; boundary color (hardcoded for now)
-  call flood_fill_init_color_comp
-
-  xor ah, ah
-  int 0x16
-
-  mov ax, word [ff_row]
-  mov cx, word [ff_col]
-  call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
-
-  mov al, byte [es:di]   ; compare against the target color (0 = unfilled, 1 = filled)
-  nop
-  call flood_fill_find_fill_mask
-  mov byte [ff_octet_mask], bl
-  mov ah, bl ; ah <- mask
-  call draw_mask
-
-.to_left:
-  mov cx, word [ff_col]
-  and cl, 0x8 ; cx <- col divisible by 8
-  mov al, byte [ff_octet_mask]
-  rcl al, 1            ; CF <- leftmost mask bit, 1 = was filled now
-  jnc ff_fill_to_right ; if it wasn't filled now, it's a boundary, so we shouldn't
-                       ; fill to the left of us
-  call flood_fill_to_left
-  mov word [ff_leftmost_filled], cx
-  
-ff_fill_to_right:
-  
-  xor ah, ah
-  int 0x16
-  int 0x20
-
-  ret
-
 ; =============================================================================
 
 ; parameters:
-; * al - color comparison bitset (1 = boundary color, 0 = to fill)
-; * cl - starting pixel's index (col % 8)
+; * [es:di] - octet offset
+; * cx - col, should be a multiple of 8
 ; returns:
-; * bl - fill mask. examples:
-;     al = 0010 _0_011, cl = 3, bx = 00011100 
-;     al = 0101 010_0_, cl = 0, bx = 00000011
-;     al = _0_001 0100, cl = 7, bx = 11100000
-flood_fill_find_fill_mask:
-  mov ah, al ; ah <- copy of the resulting bitset
-  mov ch, cl ; ch <- copy of the starting pixel's bit index
-
-.leftmost_bit:
-  mov bl, -1 ; bl <- inverted mask of pixels to color in the current octet
-  mov cl, 8
-  sub cl, ch ; cl <- 8 - starting bit
-  rcl al, cl ; starting bit is in carry
-.leftmost_loop:
-  rcr bl, 1  ; mask <- next 0 bit
-  dec cl
-  jz .leftmost_found
-  rcr al, 1  ; CF <- next pixel
-  jnc .leftmost_loop
-.leftmost_found:
-  ror bl, cl ; align mask by starting bit
-
-.rightmost_bit:
-  mov bh, -1 ; bl <- inverted mask of pixels to color in the current octet
-  mov al, ah ; al <- bitset
-  mov cl, ch
-  rcr al, cl ; starting bit is in carry
-.rightmost_loop:
-  rcl bh, 1  ; mask <- next 0 bit
-  dec cl
-  jz .rightmost_found
-  rcl al, 1  ; CF <- next pixel
-  jnc .rightmost_loop
-.rightmost_found:
-  rol bh, cl ; align mask by starting bit
-  not bx     ; invert masks
-  or bl, bh  ; combine masks
+; * cx - rightmost filled col
+flood_fill_to_right:
+	mov dx, 0x3ce  ; reset bit mask register so we fill the whole octet
+  mov ax, 0xff08
+	out dx, ax
+.loop:
+  add cx, 8
+  cmp cx, 640
+  je .done
+  inc di
+  mov al, byte [es:di] ; compare against the target color
+  test al, al
+  jnz .found_boundary
+  mov byte [es:di], 0xFF
+  jmp .loop
+.found_boundary:
+  cmp al, 0xFF
+  jne .find_bit_boundary
+  sub cx, 8  
+  jmp .done
+.find_bit_boundary:
+  ; example: 00001000 -> 11111000, col += 4
+  mov dx, cx ; dx <- col/8
+  mov cx, -1 ; -1 to exclude the boundary
+.octet_loop:
+  inc cx
+  rcl al, 1  ; CR <- leftmost pixel (boundary is on the right)
+  jnc .octet_loop
+  add dx, cx ; dx <- rightmost filled column excluding boundary
+.make_octet_mask:
+  mov ah, 0x80
+  sar ah, cl   ; ah <- fill mask (includes the boundary here...)
+  push dx
+  call draw_mask
+  pop cx ; cx <- leftmost filled col
+.done:
   ret
 
 ; =============================================================================
