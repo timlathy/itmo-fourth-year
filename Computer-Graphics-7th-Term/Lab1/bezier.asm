@@ -19,42 +19,6 @@ init_color:
   mov ax, 0x0602
   out dx, ax
 
-testtt:
-  nop
-  mov ah, 0xFF
-  mov di, 0
-  call draw_mask
-  mov ah, 0xFF
-  mov di, 1
-  call draw_mask
-  mov ah, 0xFF
-  mov di, 80*3
-  call draw_mask
-  mov ah, 0xFF
-  mov di, 80*3+1
-  call draw_mask
-
-  mov ah, 0x80
-  mov di, 80*1
-  call draw_mask
-  mov ah, 0x04
-  mov di, 80*1+1
-  call draw_mask
-  mov ah, 0x80
-  mov di, 80*2
-  call draw_mask
-  mov ah, 0x04
-  mov di, 80*2+1
-  call draw_mask
-  
-  xor ah, ah
-  int 0x16
-
-  mov ax, 1 ; row
-  mov cx, 3 ; col
-  call flood_fill
-  jmp end
-
 prologue:
   xor ax, ax
   push ax
@@ -71,6 +35,32 @@ main_loop:
   push ax
   cmp ax, word [bezier_curves_cnt]
   jb main_loop
+
+fill_shapes:
+  xor ah, ah
+  int 0x16
+
+  mov ax, 211 ; row
+  mov cx, 59  ; col
+
+  ;mov ax, 216 ; row
+  ;mov cx, 65  ; col
+
+  ;mov ax, 211
+  ;mov cx, 98
+  call flood_fill
+  jmp end
+
+  mov word [ff_leftmost_filled], 0x61
+  mov word [ff_rightmost_filled], 0x68
+  call compute_pixel_pos
+  
+  mov ax, 212
+  call scan_row
+  ;mov ah, 0b1111_1111
+  ;call draw_mask
+  ;call flood_fill
+  jmp end
 
 end:
   ; Wait for a single key press and terminate the program
@@ -411,7 +401,8 @@ flood_fill:
   call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
   mov word [ff_octet], di
   mov al, byte [es:di]   ; compare against the target color (0 = unfilled, 1 = filled)
-  nop
+  neg cl
+  add cl, 7   ; cl <- 7 - col (bit index)
   call flood_fill_find_fill_mask
   mov ah, bl ; ah <- mask
   call draw_mask
@@ -419,14 +410,17 @@ flood_fill:
 .set_lm_rm_filled_cols_to_octet_bits:
   mov bx, sp
   mov cx, word [bx] ; cx <- col
-  and cl, 0xf8 ; cx <- col divisible by 8
+  and cx, 0xfff8    ; cx <- col divisible by 8
   mov al, byte [ff_leftmost_bit]
   neg al
   add al, 7  ; al <- 7 - bit index (highest bit is lowest col)
   movzx ax, al
   add ax, cx
   mov word [ff_leftmost_filled], ax
-  movzx ax, byte [ff_rightmost_bit]
+  mov al, byte [ff_rightmost_bit]
+  neg al
+  add al, 7  ; al <- 7 - bit index
+  movzx ax, al
   add ax, cx
   mov word [ff_rightmost_filled], ax
 
@@ -442,7 +436,7 @@ flood_fill:
   mov di, word [ff_octet]
   mov bp, sp
   mov cx, word [bp] ; cx <- col
-  and cl, 0x8       ; cx <- starting col divisible by 8
+  and cx, 0xfff8    ; cx <- col divisible by 8
   call flood_fill_to_right
   mov word [ff_rightmost_filled], cx
 
@@ -470,7 +464,7 @@ flood_fill:
 
 ; parameters:
 ; * al - color comparison bitset (1 = boundary color, 0 = to fill)
-; * cl - starting pixel's index (col % 8)
+; * cl - starting pixel's index (7 - col % 8)
 ; returns:
 ; * [ff_leftmost_bit] - index of the leftmost bit
 ; * [ff_rightmost_bit] - index of the rightmost bit
@@ -537,16 +531,28 @@ scan_row_row: dw 0
 scan_row:
   pop si ; si <- return address (the stack will be filled with return values)
   mov word [scan_row_row], ax
+  cmp ax, 0xDA
+  jne .testno
+.testyes:
+  nop
+.testno:
   mov cx, word [ff_rightmost_filled]
   call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
   shl dx, 3 ; dx <- col divisible by 8
 .first_iter:
   mov al, byte [es:di]
+  test al, al
+  jz .rightmost_octet_unfilled
   mov ah, 0x80
   sar ah, cl ; ah <- mask with zeroes to the right of the rightmost filled col
-  and al, ah ; al <- comparison bitset with bits past col set to 0
+  not ah     
+  or al, ah ; al <- comparison bitset with bits past col set to 1
   xor bx, bx
   jmp .check_col_against_leftmost
+.rightmost_octet_unfilled:
+  push word [scan_row_row]
+  push word 0 ; rightmost
+  xor bx, bx
 .loop:
   sub dx, 8  ; col <- col - 8
   js .loop_end
@@ -557,11 +563,16 @@ scan_row:
   mov cx, word [ff_leftmost_filled]
   cmp dx, cx
   ja .check_octet
-  ; this octet contains the leftmost pixel, we need to mask before checking
+  and cx, 0xf8
+  cmp dx, cx
+  jne .loop_end ; we've moved past the leftmost octet
+  ; if not, this octet contains the leftmost pixel
+  ; we need to mark cols to the left of it as boundary
+  mov cx, word [ff_leftmost_filled]
+  and cl, 0x7
   mov ah, 0x80
   sar ah, cl   ; ah <- mask with ones to the left of the leftmost filled col
   or al, ah    ; al <- comparison bitset with bits past lm col set to 1
-  xor dx, dx   ; this is the last iteration
 .check_octet:
   xor cx, cx
 .loop_octet:
@@ -570,6 +581,7 @@ scan_row:
   test bl, bl ; bl is set to 1 if the previous bit was 1
   jz .loop_octet_next
   ; if the bit is 0 but bl is 1, push the current pixel
+  inc word [ff_stack_pixel_count]
   push word [scan_row_row] ; --- push row
   mov bx, cx
   neg bx
@@ -577,7 +589,6 @@ scan_row:
   add bx, dx ; bx <- col/8*8 + 7 - bit 
   push bx    ; ----------------- push col
   xor bx, bx ; bl <- 0
-  inc word [ff_stack_pixel_count]
   jmp .loop_octet_next
 .boundary_bit:
   mov bl, 1
