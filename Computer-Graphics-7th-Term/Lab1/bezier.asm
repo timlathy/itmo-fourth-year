@@ -21,31 +21,39 @@ init_color:
 
 testtt:
   nop
-  mov ah, 0b1010_1000
+  mov ah, 0xFF
   mov di, 0
   call draw_mask
-  mov ah, 0b1010_0010
+  mov ah, 0xFF
   mov di, 1
   call draw_mask
-  
-  mov word [ff_leftmost_filled], 1
-  mov word [ff_rightmost_filled], 12
+  mov ah, 0xFF
+  mov di, 80*3
+  call draw_mask
+  mov ah, 0xFF
+  mov di, 80*3+1
+  call draw_mask
 
+  mov ah, 0x80
+  mov di, 80*1
+  call draw_mask
+  mov ah, 0x04
+  mov di, 80*1+1
+  call draw_mask
+  mov ah, 0x80
+  mov di, 80*2
+  call draw_mask
+  mov ah, 0x04
+  mov di, 80*2+1
+  call draw_mask
+  
   xor ah, ah
   int 0x16
 
-  mov ax, 0x6  
-  call flood_fill_init_color_comp
-  
-; * ax - row
-; * [ff_leftmost_filled]
-; * [ff_rightmost_filled]
-  xor ax, ax
-  call scan_row
+  mov ax, 1 ; row
+  mov cx, 3 ; col
+  call flood_fill
   jmp end
-
-call flood_fill
-jmp end
 
 prologue:
   xor ax, ax
@@ -370,52 +378,38 @@ cubic_bezier:
 ; ================================= FLOOD FILL ================================
 ; =============================================================================
 
-ff_row: dw 0
-ff_col: dw 0
-
 ff_leftmost_bit: db 0
 ff_rightmost_bit: db 0
 
 ff_leftmost_filled: dw 0
 ff_rightmost_filled: dw 0
 
+ff_row: dw 0
+ff_octet: dw 0
+
+ff_stack_pixel_count: dw 0
+
 ; parameters:
 ; * ax - starting row
 ; * cx - starting col
 ; clobbers:
-; * ???
+; * everything
 flood_fill:
-  ; test
-  mov ah, 0b0010_0000
-  mov di, 0
-  call draw_mask
-
-  mov ah, 0b0000_1000
-  mov di, 5
-  call draw_mask
-
-  mov ax, 0
-  mov cx, 8*3-1
-  ; endtest
-
-  mov ax, 0x40
-  bsf ax, ax
-
-  mov word [ff_row], ax
-  mov word [ff_col], cx
+  mov word [ff_stack_pixel_count], 1
+  push ax
+  push cx
 
   ; Reading from video memory should compare the color of each pixel
   ; in the octet with the boundary color and return a bitset:
   mov ax, 0x6 ; boundary color (hardcoded for now)
   call flood_fill_init_color_comp
 
-  xor ah, ah
-  int 0x16
-
-  mov ax, word [ff_row]
-  mov cx, word [ff_col]
+.fill_row:
+  mov bx, sp
+  mov ax, word [bx+2] ; ax <- row
+  mov cx, word [bx]   ; cx <- col
   call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
-
+  mov word [ff_octet], di
   mov al, byte [es:di]   ; compare against the target color (0 = unfilled, 1 = filled)
   nop
   call flood_fill_find_fill_mask
@@ -423,41 +417,53 @@ flood_fill:
   call draw_mask
 
 .set_lm_rm_filled_cols_to_octet_bits:
-  mov cx, word [ff_col]
+  mov bx, sp
+  mov cx, word [bx] ; cx <- col
   and cl, 0xf8 ; cx <- col divisible by 8
-  movzx ax, byte [ff_leftmost_bit]
+  mov al, byte [ff_leftmost_bit]
+  neg al
+  add al, 7  ; al <- 7 - bit index (highest bit is lowest col)
+  movzx ax, al
   add ax, cx
   mov word [ff_leftmost_filled], ax
   movzx ax, byte [ff_rightmost_bit]
   add ax, cx
   mov word [ff_rightmost_filled], ax
-  
-  push di
 
 .fill_row_to_left:
   cmp byte [ff_leftmost_bit], 7 ; was the leftmost bit in the octet filled?
   jne .fill_row_to_right        ; if not, we don't need to fill to the left
   call flood_fill_to_left       ; ! cx should be col divisible by 8 here !
   mov word [ff_leftmost_filled], cx
-
-  xor ah, ah
-  int 0x16
   
 .fill_row_to_right:
   cmp byte [ff_rightmost_bit], 0 ; was the rightmost bit in the octet filled?
   jne .pick_neighbors
+  mov di, word [ff_octet]
   mov bp, sp
-  mov di, [bp] ; restore di without popping it off the stack
-  mov cx, word [ff_col]
-  and cl, 0x8 ; cx <- starting col divisible by 8
+  mov cx, word [bp] ; cx <- col
+  and cl, 0x8       ; cx <- starting col divisible by 8
   call flood_fill_to_right
   mov word [ff_rightmost_filled], cx
 
 .pick_neighbors:
-  xor ah, ah
-  int 0x16
-  int 0x20
+  pop ax ; remove current col
+  pop ax ; ax <- row
+  mov word [ff_row], ax
+.scan_row_above:
+  sub ax, 1
+  js .scan_row_below
+  call scan_row
+.scan_row_below:
+  mov ax, word [ff_row]
+  add ax, 1
+  cmp ax, 480
+  je .move_next
+  call scan_row
 
+.move_next:
+  sub word [ff_stack_pixel_count], 1
+  jnz .fill_row
   ret
 
 ; =============================================================================
@@ -524,6 +530,8 @@ scan_row_row: dw 0
 ; * [ff_rightmost_filled]
 ; pushes on stack:
 ; * pairs of (row, col) for all rightmost pixels to be filled
+; side effects:
+; * increments [ff_stack_pixel_count] by the number of pairs found
 ; clobbers:
 ; * everything
 scan_row:
@@ -569,6 +577,7 @@ scan_row:
   add bx, dx ; bx <- col/8*8 + 7 - bit 
   push bx    ; ----------------- push col
   xor bx, bx ; bl <- 0
+  inc word [ff_stack_pixel_count]
   jmp .loop_octet_next
 .boundary_bit:
   mov bl, 1
