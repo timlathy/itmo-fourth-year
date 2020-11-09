@@ -17,12 +17,16 @@ out dx, ax
 mov ax, 0xa000
 mov es, ax
 
+; Reset bit mask
+mov dx, 0x3ce
+mov ax, 0xff08
+out dx, ax
+
 ; 640 pixels in a row, with 8 pixels per byte, 640 / 8 = 80 bytes per row
-; Octet offset = row * 80 + col / 8 = (320 * 80) + (200 / 8) = 25625 = 0x6419
-; Within the octet, column 200 = 0b00000001
-mov al, 0x1
-mov bx, 0x6419
-mov [es:bx], al
+; Octet offset = row * 80 + col / 8 = (320 * 80) + (200 / 8) = 25625= 0x6419; Within the octet, column 200 = 0b00000001
+mov al, 0x01
+mov di, 0x6419
+mov byte [es:di], al
 
 ; Wait for a single key press and terminate the programm
 xor ah, ah

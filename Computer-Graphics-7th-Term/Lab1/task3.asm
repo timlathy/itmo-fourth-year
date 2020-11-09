@@ -19,7 +19,7 @@ mov cx, 313 ; starting col
 mov bx, 327 ; line width
 call draw_line
 
-; Wait for a single key press and terminate the programm
+; Wait for a single key press and terminate the program
 xor ah, ah
 int 0x16
 int 0x20

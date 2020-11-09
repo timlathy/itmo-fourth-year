@@ -37,9 +37,6 @@ main_loop:
   jb main_loop
 
 fill_shapes:
-  xor ah, ah
-  int 0x16
-
   ; left
   mov ax, 216 ; row
   mov cx, 65  ; col
@@ -52,13 +49,6 @@ fill_shapes:
   mov ax, 211
   mov cx, 114
   call flood_fill
-
-  ;mov ax, 154
-  ;mov cx, 120
-  ;call flood_fill
-  ;mov ax, 162
-  ;mov cx, 116
-  ;call flood_fill
 
 end:
   ; Wait for a single key press and terminate the program
@@ -226,34 +216,35 @@ draw_line:
   mov bx, word [line_start_px]
   mov ax, word [bezier_px]
   sub ax, bx
-  jbe draw_line_x0gtex1
-draw_line_x0ltx1:
+  jbe .x0_gte_x1
+.x0_lt_x1:
   mov word [sign_x], 1
-  jmp draw_line_dx
-draw_line_x0gtex1:
+  jmp .dx
+.x0_gte_x1:
   mov word [sign_x], -1
-draw_line_dx:
+.dx:
   call abs_ax ; ax <- abs(x1-x0)
   mov word [line_dx], ax
   
   mov cx, word [line_start_py]
   mov ax, word [bezier_py]
   sub ax, cx
-  jbe draw_line_y0gtey1
-draw_line_y0lty1:
+  jbe .y0_gte_y1
+.y0_lt_y1:
   mov word [sign_y], 1
-  jmp draw_line_dy
-draw_line_y0gtey1:
+  jmp .dy
+.y0_gte_y1:
   mov word [sign_y], -1
-draw_line_dy:
+.dy:
   call abs_ax
   neg ax      ; ax <- -abs(y1-y0)
   mov word [line_dy], ax
 
+.e:
   add ax, word [line_dx]
   mov word [line_err], ax
 
-draw_line_loop:
+.loop:
   mov ax, word [line_start_py]
   mov cx, word [line_start_px]
   call draw_pixel
@@ -261,18 +252,18 @@ draw_line_loop:
   mov cx, word [line_start_px] ; cx <- line_start_px
   mov dx, word [line_start_py] ; dx <- line_start_py
   cmp cx, word [bezier_px]
-  jne draw_line_loop_cont
+  jne .loop_cont
   cmp dx, word [bezier_py]
-  je draw_line_end
+  je .end
 
-draw_line_loop_cont:
+.loop_cont:
   mov ax, word [line_err]
   shl ax, 1 ; ax <- err*2
 
-draw_line_2egtedy:
+.2e_gte_dy:
   mov bx, word [line_dy]
   cmp ax, bx
-  jl draw_line_2eltedx
+  jl .2e_lte_dx
   shr ax, 1  ; ax <- err
   add bx, ax ; bx <- err + dy
   mov word [line_err], bx
@@ -280,18 +271,17 @@ draw_line_2egtedy:
   mov word [line_start_px], cx
   shl ax, 1  ; ax <- err*2
 
-draw_line_2eltedx:
+.2e_lte_dx:
   mov bx, word [line_dx]
   cmp ax, bx
-  jg draw_line_loop
+  jg .loop
   add bx, word [line_err] ; bx <- err + line_dx (can't use ax because err could've been altered by 2egtedy!)
   mov word [line_err], bx
   add dx, word [sign_y] ; dx <- line_start_py + sign_y
   mov word [line_start_py], dx
+  jmp .loop
   
-  jmp draw_line_loop
-  
-draw_line_end:
+.end:
   ret
 
 ; =============================================================================
@@ -395,13 +385,6 @@ flood_fill:
   call flood_fill_init_color_comp
 
 .fill_row:
-
-  inc word [ff_iter]
-  cmp word [ff_iter], 87 ; iter 35 destroys everything
-  jb .testno  
-  nop
-.testno:
-
   mov bx, sp
   mov ax, word [bx+2] ; ax <- row
   mov cx, word [bx]   ; cx <- col
@@ -494,7 +477,6 @@ scan_row:
   sar ah, cl ; ah <- mask with zeroes to the right of the rightmost filled col
   not ah     
   or al, ah ; al <- comparison bitset with bits past col set to 1
-  xor bx, bx
   mov bx, 1
   jmp .check_col_against_leftmost
 .loop:
