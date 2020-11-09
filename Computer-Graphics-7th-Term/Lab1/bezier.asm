@@ -40,27 +40,25 @@ fill_shapes:
   xor ah, ah
   int 0x16
 
-  mov ax, 211 ; row
-  mov cx, 59  ; col
-
-  ;mov ax, 216 ; row
-  ;mov cx, 65  ; col
-
-  ;mov ax, 211
-  ;mov cx, 98
+  ; left
+  mov ax, 216 ; row
+  mov cx, 65  ; col
   call flood_fill
-  jmp end
+  ; middle
+  mov ax, 211
+  mov cx, 98
+  call flood_fill
+  ; right
+  mov ax, 211
+  mov cx, 114
+  call flood_fill
 
-  mov word [ff_leftmost_filled], 0x61
-  mov word [ff_rightmost_filled], 0x68
-  call compute_pixel_pos
-  
-  mov ax, 212
-  call scan_row
-  ;mov ah, 0b1111_1111
-  ;call draw_mask
+  ;mov ax, 154
+  ;mov cx, 120
   ;call flood_fill
-  jmp end
+  ;mov ax, 162
+  ;mov cx, 116
+  ;call flood_fill
 
 end:
   ; Wait for a single key press and terminate the program
@@ -379,6 +377,8 @@ ff_octet: dw 0
 
 ff_stack_pixel_count: dw 0
 
+ff_iter: dw 0
+
 ; parameters:
 ; * ax - starting row
 ; * cx - starting col
@@ -395,6 +395,13 @@ flood_fill:
   call flood_fill_init_color_comp
 
 .fill_row:
+
+  inc word [ff_iter]
+  cmp word [ff_iter], 87 ; iter 35 destroys everything
+  jb .testno  
+  nop
+.testno:
+
   mov bx, sp
   mov ax, word [bx+2] ; ax <- row
   mov cx, word [bx]   ; cx <- col
@@ -438,6 +445,7 @@ flood_fill:
   mov cx, word [bp] ; cx <- col
   and cx, 0xfff8    ; cx <- col divisible by 8
   call flood_fill_to_right
+  dec cx ; exclude boundary
   mov word [ff_rightmost_filled], cx
 
 .pick_neighbors:
@@ -459,6 +467,82 @@ flood_fill:
   sub word [ff_stack_pixel_count], 1
   jnz .fill_row
   ret
+
+; =============================================================================
+
+scan_row_row: dw 0
+
+; parameters:
+; * ax - row
+; * [ff_leftmost_filled]
+; * [ff_rightmost_filled]
+; pushes on stack:
+; * pairs of (row, col) for all rightmost pixels to be filled
+; side effects:
+; * increments [ff_stack_pixel_count] by the number of pairs found
+; clobbers:
+; * everything
+scan_row:
+  pop si ; si <- return address (the stack will be filled with return values)
+  mov word [scan_row_row], ax
+  mov cx, word [ff_rightmost_filled]
+  call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
+  shl dx, 3 ; dx <- col divisible by 8
+.first_iter:
+  mov al, byte [es:di]
+  mov ah, 0x80
+  sar ah, cl ; ah <- mask with zeroes to the right of the rightmost filled col
+  not ah     
+  or al, ah ; al <- comparison bitset with bits past col set to 1
+  xor bx, bx
+  mov bx, 1
+  jmp .check_col_against_leftmost
+.loop:
+  sub dx, 8  ; col <- col - 8
+  js .loop_end
+.load_octet:
+  dec di
+  mov al, byte [es:di] ; cx <- bit, dx <- col/8
+.check_col_against_leftmost:
+  mov cx, word [ff_leftmost_filled]
+  cmp dx, cx
+  ja .check_octet
+  and cx, 0xf8
+  cmp dx, cx
+  jne .loop_end ; we've moved past the leftmost octet
+  ; if not, this octet contains the leftmost pixel
+  ; we need to mark cols to the left of it as boundary
+  mov cx, word [ff_leftmost_filled]
+  and cl, 0x7
+  mov ah, 0x80
+  sar ah, cl   ; ah <- mask with ones to the left of the leftmost filled col
+  or al, ah    ; al <- comparison bitset with bits past lm col set to 1
+.check_octet:
+  xor cx, cx
+.loop_octet:
+  bt ax, cx  ; CF <- next pixel
+  jc .boundary_bit
+  test bl, bl ; bl is set to 1 if the previous bit was 1
+  jz .loop_octet_next
+  ; if the bit is 0 but bl is 1, push the current pixel
+  inc word [ff_stack_pixel_count]
+  push word [scan_row_row] ; --- push row
+  mov bx, cx
+  neg bx
+  add bx, 7  ; bx <- 7 - bit
+  add bx, dx ; bx <- col/8*8 + 7 - bit 
+  push bx    ; ----------------- push col
+  xor bx, bx ; bl <- 0
+  jmp .loop_octet_next
+.boundary_bit:
+  mov bl, 1
+.loop_octet_next:
+  inc cx
+  cmp cx, 8
+  je .loop
+  jmp .loop_octet
+.loop_end:
+  jmp si
 
 ; =============================================================================
 
@@ -513,92 +597,6 @@ flood_fill_find_fill_mask:
   not bx    
   or bl, bh 
   ret
-
-; =============================================================================
-
-scan_row_row: dw 0
-
-; parameters:
-; * ax - row
-; * [ff_leftmost_filled]
-; * [ff_rightmost_filled]
-; pushes on stack:
-; * pairs of (row, col) for all rightmost pixels to be filled
-; side effects:
-; * increments [ff_stack_pixel_count] by the number of pairs found
-; clobbers:
-; * everything
-scan_row:
-  pop si ; si <- return address (the stack will be filled with return values)
-  mov word [scan_row_row], ax
-  cmp ax, 0xDA
-  jne .testno
-.testyes:
-  nop
-.testno:
-  mov cx, word [ff_rightmost_filled]
-  call compute_pixel_pos ; di <- octet, cx <- bit, dx <- col/8
-  shl dx, 3 ; dx <- col divisible by 8
-.first_iter:
-  mov al, byte [es:di]
-  test al, al
-  jz .rightmost_octet_unfilled
-  mov ah, 0x80
-  sar ah, cl ; ah <- mask with zeroes to the right of the rightmost filled col
-  not ah     
-  or al, ah ; al <- comparison bitset with bits past col set to 1
-  xor bx, bx
-  jmp .check_col_against_leftmost
-.rightmost_octet_unfilled:
-  push word [scan_row_row]
-  push word 0 ; rightmost
-  xor bx, bx
-.loop:
-  sub dx, 8  ; col <- col - 8
-  js .loop_end
-.load_octet:
-  dec di
-  mov al, byte [es:di] ; cx <- bit, dx <- col/8
-.check_col_against_leftmost:
-  mov cx, word [ff_leftmost_filled]
-  cmp dx, cx
-  ja .check_octet
-  and cx, 0xf8
-  cmp dx, cx
-  jne .loop_end ; we've moved past the leftmost octet
-  ; if not, this octet contains the leftmost pixel
-  ; we need to mark cols to the left of it as boundary
-  mov cx, word [ff_leftmost_filled]
-  and cl, 0x7
-  mov ah, 0x80
-  sar ah, cl   ; ah <- mask with ones to the left of the leftmost filled col
-  or al, ah    ; al <- comparison bitset with bits past lm col set to 1
-.check_octet:
-  xor cx, cx
-.loop_octet:
-  bt ax, cx  ; CF <- next pixel
-  jc .boundary_bit
-  test bl, bl ; bl is set to 1 if the previous bit was 1
-  jz .loop_octet_next
-  ; if the bit is 0 but bl is 1, push the current pixel
-  inc word [ff_stack_pixel_count]
-  push word [scan_row_row] ; --- push row
-  mov bx, cx
-  neg bx
-  add bx, 7  ; bx <- 7 - bit
-  add bx, dx ; bx <- col/8*8 + 7 - bit 
-  push bx    ; ----------------- push col
-  xor bx, bx ; bl <- 0
-  jmp .loop_octet_next
-.boundary_bit:
-  mov bl, 1
-.loop_octet_next:
-  inc cx
-  cmp cx, 8
-  je .loop
-  jmp .loop_octet
-.loop_end:
-  jmp si
 
 ; =============================================================================
 
