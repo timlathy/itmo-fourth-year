@@ -1,0 +1,66 @@
+---
+title: "Lab4-Plots"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+load_samples <- read.csv("load-test-samples.csv", header = T) %>%
+  group_by(label) %>%
+  mutate(sample = row_number())
+stress_samples <- read.csv("stress-test-samples.csv", header = T) %>%
+  slice_head(n = 3100) %>%
+  mutate(sample = row_number()) %>%
+  mutate(isError = ifelse(success == "true", 0, 1)) %>%
+  group_by(allThreads) %>%
+  mutate(errorRate = cumsum(isError) / row_number()) %>%
+  ungroup()
+```
+
+```{r}
+ggplot(load_samples, aes(x = sample, y = elapsed, group = label, color = label)) +
+  geom_line() + geom_hline(yintercept = 880, linetype = "dashed", color = "black") +
+  scale_y_continuous(breaks = sort(c(0, 500, 880, 1000, 1500, 2000))) +
+  labs(title = "Зависимость времени обработки запросов от конфигурации", x = "# запроса", y = "Максимальное время обработки запроса, мс", color = "Конфигурация") +
+  scale_color_discrete(labels = c("1", "2", "3"))
+```
+```{r}
+load_samples %>% summarize("Среднее время обработки, мс" = round(mean(elapsed)), "Максимальное время обработки, мс" = max(elapsed), .groups = "drop")
+```
+
+```{r}
+first_allThreads_exceeding_max <- stress_samples %>%
+  filter(elapsed > 880) %>%
+  summarize(first(allThreads)) %>%
+  as.numeric()
+
+stress_samples_times <- 
+  stress_samples %>%
+  mutate(meanelapsed = cummean(elapsed)) %>%
+  gather(key = pltgroup, value = plty, c("elapsed", "meanelapsed"))
+
+ggplot(stress_samples_times, aes(x = allThreads, y = plty, group = pltgroup, color = pltgroup)) +
+  geom_line() +
+  geom_hline(yintercept = 880, linetype = "dashed", size = 0.3) +
+  geom_vline(xintercept = first_allThreads_exceeding_max, linetype = "dashed", size = 0.3) +
+  scale_y_continuous(breaks = c(0, 500, 880, 1000, 1500, 2000, 2500)) +
+  scale_x_continuous(breaks = sort(c(first_allThreads_exceeding_max, 0, 50, 100, 150, 200))) +
+  labs(title = "Зависимость времени обработки запросов от числа пользователей", x = "Число одновременных пользователей", y = "Время обработки запроса, мс", color = "") +
+  scale_color_discrete(labels = c("Максимальное", "Среднее"))
+```
+
+```{r}
+first_allThreads_errors <- stress_samples %>%
+  filter(success == "false") %>%
+  summarize(first(allThreads)) %>%
+  as.numeric()
+
+ggplot(stress_samples, aes(x = allThreads, y = errorRate)) +
+  geom_line(color = "#f8766d") +
+  geom_vline(xintercept = first_allThreads_errors, linetype = "dashed", size = 0.3) +
+  scale_x_continuous(breaks = sort(c(first_allThreads_errors, 0, 50, 100, 200))) +
+  labs(title = "Зависимость частоты отказов от числа пользователей", x = "Число одновременных пользователей", y = "Частота отказов")
+```
