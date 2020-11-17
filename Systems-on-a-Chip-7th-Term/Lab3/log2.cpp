@@ -22,8 +22,8 @@
  */
 float log2_hw(float x)
 {
-    //#pragma HLS INTERFACE s_axilite port=x
-    //#pragma HLS INTERFACE s_axilite port=return
+    #pragma HLS INTERFACE s_axilite port=x
+    #pragma HLS INTERFACE s_axilite port=return
 
     const float a = -0.268344;
     const float b = 0.496404;

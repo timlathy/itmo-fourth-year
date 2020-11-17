@@ -1,5 +1,20 @@
 #include "log2.h"
 
+float log2_hw(XLog2_hw* instance, float x)
+{
+    union { float f; unsigned int i; } fp32;
+    fp32.f = x;
+
+    while (!XLog2_hw_IsReady(instance));
+    XLog2_hw_Set_x(instance, fp32.i);
+    XLog2_hw_Start(instance);
+    while (!XLog2_hw_IsDone(instance));
+
+    fp32.i = XLog2_hw_Get_return(instance);
+    return fp32.f;
+}
+
+#ifdef TESTBENCH_SW
 float log2_sw(float x)
 {
     const float a = -0.268344;
@@ -30,4 +45,4 @@ float log2_sw(float x)
     float signif2 = signif*signif;
     return fexp + a*signif2*signif2 + b*signif2*signif + c*signif2 + d*signif;
 }
-
+#endif
