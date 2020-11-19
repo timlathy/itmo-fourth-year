@@ -17,11 +17,6 @@ float log2_hw(XLog2_hw* instance, float x)
 #ifdef TESTBENCH_SW
 float log2_sw(float x)
 {
-    const float a = -0.268344;
-    const float b = 0.496404;
-    const float c = -0.726980;
-    const float d = 1.442547;
-
     union { float f; unsigned int i; } fp32;
 
     fp32.f = x;
@@ -42,7 +37,14 @@ float log2_sw(float x)
     }
     signif -= 1.0;
 
-    float signif2 = signif*signif;
-    return fexp + a*signif2*signif2 + b*signif2*signif + c*signif2 + d*signif;
+    const float k[4] = {1.442547, -0.726980, 0.496404, -0.268344};
+    float acc = fexp;
+    float mult = signif;
+    for (int i = 0; i < 4; ++i)
+    {
+        acc += k[i] * mult;
+        mult *= signif;
+    }
+    return acc;
 }
 #endif

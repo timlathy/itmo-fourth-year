@@ -25,11 +25,6 @@ float log2_hw(float x)
     #pragma HLS INTERFACE s_axilite port=x
     #pragma HLS INTERFACE s_axilite port=return
 
-    const float a = -0.268344;
-    const float b = 0.496404;
-    const float c = -0.726980;
-    const float d = 1.442547;
-
     union { float f; unsigned int i; } fp32;
 
     fp32.f = x;
@@ -55,7 +50,30 @@ float log2_hw(float x)
     }
     signif -= 1.0;
 
+
+    const float k[4] = {1.442547, -0.726980, 0.496404, -0.268344};
+
     float signif2 = signif*signif;
-    // a*signif2*signif2 + b*signif2*signif + c*signif2 + d*signif + fexp;
-    return hls::fmaf(a, signif2*signif2, b*signif2*signif) + hls::fmaf(c, signif2, hls::fmaf(d, signif, fexp));
+
+    float dsigniffexp = hls::fmaf(k[0], signif, fexp);
+    float rhs = hls::fmaf(k[1], signif2, dsigniffexp);
+
+    float bsignif2 = k[2]*signif2;
+    float bsignif3 = bsignif2*signif;
+    float signif4 = signif2*signif2;
+    float lhs = hls::fmaf(k[3], signif4, bsignif3);
+
+    return lhs + rhs;
+
+    /*
+    float acc = fexp;
+    float mult = signif;
+    for (int i = 0; i < 4; ++i)
+    {
+        #pragma HLS unroll
+        acc += k[i] * mult;
+        mult *= signif;
+    }
+    return acc;
+    */
 }
