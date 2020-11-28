@@ -57,6 +57,20 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     camera->on_mouse_movement(xpos, ypos);
 }
 
+// Process keys that don't depend on the press duration
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (action == GLFW_PRESS)
+    {
+        switch (key)
+        {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(window, GL_TRUE);
+            break;
+        }
+    }
+}
+
 int main()
 {
     if (glfwInit() != GLFW_TRUE)
@@ -115,6 +129,9 @@ int main()
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetKeyCallback(window, key_callback);
+
+    glEnable(GL_DEPTH_TEST);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -127,8 +144,17 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, GL_TRUE);
+        glm::vec3 movement{0,0,0};
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            movement += CAMERA_FWD;
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            movement -= CAMERA_FWD;
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            movement += CAMERA_RIGHT;
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            movement -= CAMERA_RIGHT;
+        if (glm::length(movement) > 0.0f)
+            camera->on_key_movement(movement);
     }
 
     glfwTerminate();

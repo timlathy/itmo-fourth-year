@@ -2,6 +2,11 @@
 
 #include <glm/glm.hpp>
 
+// Y is the vertical axis (X is horizontal and Z is perpendicular to the screen)
+static const glm::vec3 CAMERA_UP = glm::vec3(0.0f, 1.0f, 0.0f);
+static const glm::vec3 CAMERA_FWD = glm::vec3(0.0f, 0.0f, 1.0f);
+static const glm::vec3 CAMERA_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
+
 class Camera
 {
   private:
@@ -17,4 +22,5 @@ class Camera
     Camera(int view_width, int view_height);
     glm::mat4 vp_matrix() const;
     void on_mouse_movement(double xpos, double ypos);
+    void on_key_movement(glm::vec3 direction);
 };
