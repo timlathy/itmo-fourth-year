@@ -1,12 +1,12 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
+#include <memory>
 
+#include "camera.hpp"
 #include "glutils.hpp"
 
 const int width = 1600;
@@ -49,6 +49,13 @@ static const GLfloat cube_vertex_buffer_data[] = {
     1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  -1.0f,
     1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f, -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f,
     -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f, 1.0f,  -1.0f, 1.0f};
+
+std::unique_ptr<Camera> camera;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    camera->on_mouse_movement(xpos, ypos);
+}
 
 int main()
 {
@@ -100,29 +107,28 @@ int main()
     glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(pos_attr);
 
+    camera = std::make_unique<Camera>(width, height);
+
     glm::mat4 model = glm::mat4(1.0f); // model to world coordinates
-    glm::mat4 view = glm::lookAt(
-        glm::vec3(4.0f, 3.0f, 3.0f), // camera position in world coordinates
-        glm::vec3(0.0f, 0.0f, 0.0f), // camera is centered at this point
-        glm::vec3(0.0f, 0.0f, 1.0f)  // Z is the vertical axis (X and Y are horizontal)
-    );
-    glm::mat4 projection = glm::perspective(
-        glm::radians(45.0f),          // FOV
-        (float)width / (float)height, // aspect ratio
-        0.1f,                         // near plane (a vertex that is closer to camera is clipped)
-        100.0f                        // far plane (a vertex that is further from camera is clipped)
-    );
-    glm::mat4 mvp = projection * view * model;
 
     GLint mvp_uniform = glGetUniformLocation(program, "mvp");
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+
     while (!glfwWindowShouldClose(window))
     {
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glm::mat4 mvp = camera->vp_matrix() * model;
         glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
         glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, GL_TRUE);
     }
 
     glfwTerminate();
