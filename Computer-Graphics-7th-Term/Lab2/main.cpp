@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "camera.hpp"
+#include "model.hpp"
 #include "glutils.hpp"
 
 const int width = 1600;
@@ -15,7 +16,7 @@ const int height = 1200;
 static const char* vertex_source = R"glsl(
     #version 450 core
 
-    in vec3 position;
+    in layout (location = 0) vec3 position;
     uniform mat4 mvp;
 
     out VS_FS_INTERFACE { vec3 in_pos; } vertex;
@@ -39,16 +40,6 @@ static const char* fragment_source = R"glsl(
         out_color = vec4(clamp(vertex.in_pos, 0.0, 1.0), 1.0);
     }
 )glsl";
-
-// 3 vertices per triangle, 12 triangles
-static const GLfloat cube_vertex_buffer_data[] = {
-    -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  -1.0f, 1.0f,  1.0f, 1.0f,  1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, -1.0f,
-    1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f,
-    -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,  -1.0f, 1.0f,
-    -1.0f, -1.0f, 1.0f,  -1.0f, -1.0f, -1.0f, -1.0f, 1.0f,  1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f,  1.0f,
-    1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f,  1.0f,  -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  -1.0f,
-    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, -1.0f, 1.0f, -1.0f, 1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  -1.0f,
-    -1.0f, 1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  -1.0f, 1.0f,  1.0f, 1.0f,  -1.0f, 1.0f};
 
 std::unique_ptr<Camera> camera;
 
@@ -108,24 +99,11 @@ int main()
     glLinkProgram(program);
     glUseProgram(program);
 
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertex_buffer_data), cube_vertex_buffer_data, GL_STATIC_DRAW);
-
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    GLint pos_attr = glGetAttribLocation(program, "position");
-    glVertexAttribPointer(pos_attr, 3, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray(pos_attr);
-
     camera = std::make_unique<Camera>(width, height);
 
-    glm::mat4 model = glm::mat4(1.0f); // model to world coordinates
-
     GLint mvp_uniform = glGetUniformLocation(program, "mvp");
+
+    Model model("../desk.fbx");
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -133,13 +111,16 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
+    model.instantiate_meshes();
+
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 mvp = camera->vp_matrix() * model;
+        glm::mat4 mvp = camera->vp_matrix() * glm::mat4(1.0f) /* model to world */;
         glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
-        glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
+
+        model.draw_meshes();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
