@@ -10,8 +10,7 @@ GLuint TextureLoader::load_texture(std::string path)
     if (auto loaded{_textures.find(path)}; loaded != _textures.end())
         return loaded->second;
 
-    // FIXME: assumes that the cwd is build/
-    FILE* png_file = fopen(("../" + path).c_str(), "rb");
+    FILE* png_file = fopen((_data_dir + "/" + path).c_str(), "rb");
     if (!png_file)
         throw std::runtime_error(path + ": unable to open texture file");
 

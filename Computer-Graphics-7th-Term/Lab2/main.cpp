@@ -7,44 +7,11 @@
 #include <memory>
 
 #include "camera.hpp"
-#include "glutils.hpp"
+#include "glprogram.hpp"
 #include "model.hpp"
 
 const int width = 1600;
 const int height = 1200;
-
-static const char* vertex_source = R"glsl(
-    #version 450 core
-
-    in layout (location = 0) vec3 position;
-    in layout (location = 1) vec3 normal;
-    in layout (location = 2) vec2 uv;
-
-    uniform mat4 mvp;
-
-    out vec2 frag_uv;
-
-    void main()
-    {
-        gl_Position = mvp * vec4(position, 1.0);
-        frag_uv = uv;
-    }
-)glsl";
-
-static const char* fragment_source = R"glsl(
-    #version 450 core
-
-    in vec2 frag_uv;
-
-    uniform sampler2D tex;
-
-    out layout (location = 0) vec4 out_color;
-
-    void main()
-    {
-        out_color = texture(tex, frag_uv);
-    }
-)glsl";
 
 std::unique_ptr<Camera> camera;
 
@@ -90,38 +57,25 @@ int main()
         return -1;
     }
 
-    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    compile_shader(vertex_shader, vertex_source);
-
-    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    compile_shader(fragment_shader, fragment_source);
-
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
-
-    link_program(program);
-
-    camera = std::make_unique<Camera>(width, height);
-
-    GLint mvp_uniform = glGetUniformLocation(program, "mvp");
-
-    TextureLoader tex_loader;
-    Model model("../desk.fbx", tex_loader);
-
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetKeyCallback(window, key_callback);
 
-    glEnable(GL_DEPTH_TEST);
-
+    TextureLoader tex_loader("../data");
+    Model model("../data/desk.fbx", tex_loader);
     model.instantiate_meshes();
 
+    GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
+    program.use();
+
+    camera = std::make_unique<Camera>(width, height);
+
+    GLint mvp_uniform = program.uniform_location("mvp");
+
+    glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(program);
 
         glm::mat4 mvp = camera->vp_matrix() * glm::mat4(1.0f) /* model to world */;
         glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
