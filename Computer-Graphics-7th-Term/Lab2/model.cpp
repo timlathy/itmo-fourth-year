@@ -6,7 +6,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-void import_node(aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes)
+void import_node(aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes, TextureLoader& tex_loader)
 {
     for (int i = 0; i < node->mNumMeshes; ++i)
     {
@@ -14,6 +14,7 @@ void import_node(aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes)
         {
             std::vector<Vertex> vertices;
             std::vector<unsigned int> indices;
+            std::optional<GLuint> texture;
 
             for (int i = 0; i < mesh->mNumVertices; ++i)
             {
@@ -40,16 +41,27 @@ void import_node(aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes)
                     indices.push_back(face.mIndices[j]);
             }
 
-            meshes.emplace_back(vertices, indices);
+            if (mesh->mMaterialIndex >= 0)
+            {
+                const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+                for (int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); ++i)
+                {
+                    aiString path;
+                    material->GetTexture(aiTextureType_DIFFUSE, i, &path);
+                    texture = tex_loader.load_texture(path.C_Str());
+                }
+            }
+
+            meshes.emplace_back(vertices, indices, texture);
         }
     }
     for (int i = 0; i < node->mNumChildren; ++i)
     {
-        import_node(node->mChildren[i], scene, meshes);
+        import_node(node->mChildren[i], scene, meshes, tex_loader);
     }
 }
 
-Model::Model(const std::string& file)
+Model::Model(const std::string& file, TextureLoader& tex_loader)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(file, aiProcess_Triangulate | aiProcess_FlipUVs);
@@ -57,7 +69,7 @@ Model::Model(const std::string& file)
     if (!scene || !scene->mRootNode)
         throw std::runtime_error("Unable to import model from " + file + ": " + std::string(importer.GetErrorString()));
 
-    import_node(scene->mRootNode, scene, _meshes);
+    import_node(scene->mRootNode, scene, _meshes, tex_loader);
 }
 
 void Model::instantiate_meshes()

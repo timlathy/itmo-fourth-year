@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 #include <vector>
+#include <optional>
 
 struct Vertex
 {
@@ -21,6 +22,8 @@ class Mesh
   private:
     std::vector<Vertex> _vertices;
     std::vector<unsigned int> _indices;
+    std::optional<GLuint> _texture;
+
     union {
         struct
         {
@@ -31,7 +34,8 @@ class Mesh
     GLuint _vao;
 
   public:
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : _vertices(vertices), _indices(indices)
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::optional<GLuint> texture)
+        : _vertices(vertices), _indices(indices), _texture(texture)
     {
     }
     void instantiate();

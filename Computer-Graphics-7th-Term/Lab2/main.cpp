@@ -7,8 +7,8 @@
 #include <memory>
 
 #include "camera.hpp"
-#include "model.hpp"
 #include "glutils.hpp"
+#include "model.hpp"
 
 const int width = 1600;
 const int height = 1200;
@@ -17,27 +17,32 @@ static const char* vertex_source = R"glsl(
     #version 450 core
 
     in layout (location = 0) vec3 position;
+    in layout (location = 1) vec3 normal;
+    in layout (location = 2) vec2 uv;
+
     uniform mat4 mvp;
 
-    out VS_FS_INTERFACE { vec3 in_pos; } vertex;
+    out vec2 frag_uv;
 
     void main()
     {
         gl_Position = mvp * vec4(position, 1.0);
-        vertex.in_pos = position;
+        frag_uv = uv;
     }
 )glsl";
 
 static const char* fragment_source = R"glsl(
     #version 450 core
 
-    in VS_FS_INTERFACE { vec3 in_pos; } vertex;
+    in vec2 frag_uv;
+
+    uniform sampler2D tex;
 
     out layout (location = 0) vec4 out_color;
 
     void main()
     {
-        out_color = vec4(clamp(vertex.in_pos, 0.0, 1.0), 1.0);
+        out_color = texture(tex, frag_uv);
     }
 )glsl";
 
@@ -86,24 +91,23 @@ int main()
     }
 
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    if (!compile_shader(vertex_shader, vertex_source))
-        return 1;
+    compile_shader(vertex_shader, vertex_source);
 
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    if (!compile_shader(fragment_shader, fragment_source))
-        return 1;
+    compile_shader(fragment_shader, fragment_source);
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
-    glLinkProgram(program);
-    glUseProgram(program);
+
+    link_program(program);
 
     camera = std::make_unique<Camera>(width, height);
 
     GLint mvp_uniform = glGetUniformLocation(program, "mvp");
 
-    Model model("../desk.fbx");
+    TextureLoader tex_loader;
+    Model model("../desk.fbx", tex_loader);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -117,6 +121,8 @@ int main()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glUseProgram(program);
+
         glm::mat4 mvp = camera->vp_matrix() * glm::mat4(1.0f) /* model to world */;
         glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
 
@@ -125,7 +131,7 @@ int main()
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        glm::vec3 movement{0,0,0};
+        glm::vec3 movement{0, 0, 0};
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             movement += CAMERA_FWD;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)

@@ -1,7 +1,9 @@
 #include "glutils.hpp"
-#include <iostream>
 
-bool compile_shader(GLuint handle, const char* source)
+#include <iostream>
+#include <vector>
+
+void compile_shader(GLuint handle, const char* source)
 {
     glShaderSource(handle, 1, &source, nullptr);
     glCompileShader(handle);
@@ -10,14 +12,34 @@ bool compile_shader(GLuint handle, const char* source)
     glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &log_size);
     if (log_size > 0)
     {
-        GLchar* message = new char[log_size];
-        glGetShaderInfoLog(handle, log_size, NULL, message);
+        std::vector<GLchar> message(log_size);
+        glGetShaderInfoLog(handle, log_size, nullptr, message.data());
 
-        std::cerr << "compile_shader log: " << message << std::endl;
-        delete[] message;
+        std::cerr << "compile_shader: " << message.data() << std::endl;
     }
 
     GLint status;
     glGetShaderiv(handle, GL_COMPILE_STATUS, &status);
-    return status == GL_TRUE;
+    if (status != GL_TRUE)
+        throw std::runtime_error("compile_shader failed");
+}
+
+void link_program(GLuint program)
+{
+    glLinkProgram(program);
+
+    GLint log_size;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &log_size);
+    if (log_size > 0)
+    {
+        std::vector<GLchar> message(log_size);
+        glGetProgramInfoLog(program, log_size, nullptr, message.data());
+
+        std::cerr << "link_program: " << message.data() << std::endl;
+    }
+
+    GLint is_linked = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &is_linked);
+    if (is_linked == GL_FALSE)
+        throw std::runtime_error("link_program failed");
 }

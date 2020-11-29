@@ -32,6 +32,12 @@ void Mesh::instantiate()
 
 void Mesh::draw() const
 {
+    if (_texture)
+    {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, *_texture);
+    }
+
     glBindVertexArray(_vao);
     glDrawElements(GL_TRIANGLES, _indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);

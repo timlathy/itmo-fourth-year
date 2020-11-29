@@ -1,3 +1,4 @@
 #include <GL/glew.h>
 
-bool compile_shader(GLuint handle, const char* source);
+void compile_shader(GLuint handle, const char* source);
+void link_program(GLuint program);
