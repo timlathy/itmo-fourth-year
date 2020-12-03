@@ -5,15 +5,15 @@
 #include <algorithm>
 
 const float MOUSE_SENSITIVITY = 0.05f;
-const float MOVEMENT_SPEED = 0.05f;
+const float MOVEMENT_SPEED = 0.1f;
 
-Camera::Camera(int view_width, int view_height)
+Camera::Camera(int view_width, int view_height, const glm::vec3& position)
 {
     _field_of_view = glm::radians(45.0f);
     _aspect_ratio = (float)view_width / (float)view_height;
-    _camera_world_pos = glm::vec3(4.0f, 3.0f, 1.0f);
-    _view_pitch = -40;
-    _view_yaw = -170;
+    _camera_world_pos = position;
+    _view_pitch = 0;
+    _view_yaw = 0;
 }
 
 glm::mat4 Camera::vp_matrix() const

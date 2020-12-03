@@ -19,10 +19,14 @@ void Model::import_node(const aiNode* node, const aiScene* scene, TextureLoader&
 
     std::cout << "Importing node " << node->mName.C_Str() << std::endl;
 
-    // Hack: assume that a node with no meshes and no children is the light source
-    // (the proper way would be to use custom properties I guess)
-    if (node->mNumMeshes == 0 && node->mNumChildren == 0)
+    if (node->mName == aiString("Camera"))
     {
+        _camera_position = acc_transform[3];
+    }
+    else if (node->mNumMeshes == 0 && node->mNumChildren == 0)
+    {
+        // Hack: assume that a node with no meshes and no children is the light source
+        // (the proper way would be to use custom properties I guess)
         _light_source = acc_transform[3]; // extract translation vector from transformation matrix
     }
 

@@ -59,12 +59,11 @@ int main()
     Model model("../data/scene.fbx", tex_loader);
     model.instantiate_meshes();
 
+    camera = std::make_unique<Camera>(width, height, model.camera_position());
+
     GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
     program.use();
-
     program.set_uniform("light_position", model.light_source());
-
-    camera = std::make_unique<Camera>(width, height);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
