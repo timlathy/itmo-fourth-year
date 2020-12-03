@@ -65,15 +65,21 @@ int main()
     camera = std::make_unique<Camera>(width, height, camera_position);
 
     GlProgram program({{"../shader/main.vert", GL_VERTEX_SHADER}, {"../shader/main.frag", GL_FRAGMENT_SHADER}});
-    program.use();
 
-    glm::vec3 moonlight_position = scene["Moonlight"].position();
-    glm::vec3 screen_position = scene["Mac Screen"].position();
-    program.set_uniform("light_position", moonlight_position);
+    glm::vec3 lights[2] = {scene["Moonlight"].position(), scene["Mac Screen"].position()};
+    glm::vec3 light_ambient_colors[2] = {glm::vec3(0.15, 0.15, 0.2), glm::vec3(0.0f, 0.0f, 0.0f)};
+    glm::vec3 light_diffuse_colors[2] = {glm::vec3(0.8, 0.8, 0.85), glm::vec3(0.0f, 0.0f, 0.0)};
+    bool light_is_directional[2] = {false, true};
+
+    program.use();
+    program.set_uniform_array("light_position", lights, 2);
+    program.set_uniform_array("light_ambient_color", light_ambient_colors, 2);
+    program.set_uniform_array("light_diffuse_color", light_diffuse_colors, 2);
+    program.set_uniform_array("light_is_directional", light_is_directional, 2);
 
     const glm::mat4 moonlight_projection =
         glm::ortho(-16.5f, 32.0f, -11.0f, 34.5f, 1.0f /* near plane */, 100.0f /* far plane */);
-    ShadowMapRenderer shadow_maps({{moonlight_position, moonlight_projection}});
+    ShadowMapRenderer shadow_maps({{lights[0], moonlight_projection}});
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);

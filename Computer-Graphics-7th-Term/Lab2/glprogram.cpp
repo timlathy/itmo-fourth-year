@@ -76,3 +76,13 @@ void GlProgram::set_uniform(const char* name, GLint value) const
     const GLint location = glGetUniformLocation(_program, name);
     glUniform1i(location, value);
 }
+
+void GlProgram::set_uniform_array(const char* name, const glm::vec3* values, size_t count) const
+{
+    glUniform3fv(glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
+}
+
+void GlProgram::set_uniform_array(const char* name, const bool* values, size_t count) const
+{
+    glUniform1iv(glGetUniformLocation(_program, name), count, (const GLint*)values);
+}
