@@ -38,7 +38,7 @@ void ShadowMapRenderer::draw(const Scene& scene, const glm::mat4& light_vp)
 
     _program.use();
 
-    for (const auto& m : scene.meshes())
+    for (const auto& m : scene.models())
     {
         const glm::mat4 mvp = light_vp * m.transform();
         _program.set_uniform("mvp", mvp);

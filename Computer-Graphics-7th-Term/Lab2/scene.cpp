@@ -17,66 +17,58 @@ void Scene::import_node(const aiNode* node, const aiScene* scene, TextureLoader&
         glm::mat4(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
     acc_transform *= transform;
 
-    std::cout << "Importing node " << node->mName.C_Str() << std::endl;
+    const std::string name(node->mName.C_Str());
 
-    if (node->mName == aiString("Camera"))
-    {
-        _camera_position = acc_transform[3];
-    }
-    else if (node->mNumMeshes == 0 && node->mNumChildren == 0)
-    {
-        // Hack: assume that a node with no meshes and no children is the light source
-        // (the proper way would be to use custom properties I guess)
-        _light_source = acc_transform[3]; // extract translation vector from transformation matrix
-    }
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    std::optional<GLuint> texture;
 
-    for (int i = 0; i < node->mNumMeshes; ++i)
+    if (node->mNumMeshes > 1)
+        throw std::runtime_error("Unable to import node " + name + ": objects with multiple meshes are not supported.");
+
+    if (node->mNumMeshes == 1)
     {
-        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        const aiMesh* mesh = scene->mMeshes[node->mMeshes[0]];
+        for (int i = 0; i < mesh->mNumVertices; ++i)
         {
-            std::vector<Vertex> vertices;
-            std::vector<unsigned int> indices;
-            std::optional<GLuint> texture;
-
-            for (int i = 0; i < mesh->mNumVertices; ++i)
+            const aiVector3D ai_pos = mesh->mVertices[i];
+            glm::vec3 position(ai_pos.x, ai_pos.y, ai_pos.z);
+            glm::vec3 normal{0, 0, 0};
+            glm::vec2 uv{0, 0};
+            if (mesh->HasNormals())
             {
-                const aiVector3D ai_pos = mesh->mVertices[i];
-                glm::vec3 position(ai_pos.x, ai_pos.y, ai_pos.z);
-                glm::vec3 normal{0, 0, 0};
-                glm::vec2 uv{0, 0};
-                if (mesh->HasNormals())
-                {
-                    const aiVector3D ai_norm = mesh->mNormals[i];
-                    normal = glm::vec3(ai_norm.x, ai_norm.y, ai_norm.z);
-                }
-                if (auto first_texture{mesh->mTextureCoords[0]})
-                {
-                    uv = glm::vec2(first_texture[i].x, first_texture[i].y);
-                }
-                vertices.emplace_back(position, normal, uv);
+                const aiVector3D ai_norm = mesh->mNormals[i];
+                normal = glm::vec3(ai_norm.x, ai_norm.y, ai_norm.z);
             }
-
-            for (int i = 0; i < mesh->mNumFaces; ++i)
+            if (auto first_texture{mesh->mTextureCoords[0]})
             {
-                const aiFace face = mesh->mFaces[i];
-                for (int j = 0; j < face.mNumIndices; ++j)
-                    indices.push_back(face.mIndices[j]);
+                uv = glm::vec2(first_texture[i].x, first_texture[i].y);
             }
+            vertices.emplace_back(position, normal, uv);
+        }
 
-            if (mesh->mMaterialIndex >= 0)
+        for (int i = 0; i < mesh->mNumFaces; ++i)
+        {
+            const aiFace face = mesh->mFaces[i];
+            for (int j = 0; j < face.mNumIndices; ++j)
+                indices.push_back(face.mIndices[j]);
+        }
+
+        if (mesh->mMaterialIndex >= 0)
+        {
+            const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+            const auto tex_count = material->GetTextureCount(aiTextureType_DIFFUSE);
+            for (int i = 0; i < tex_count; ++i)
             {
-                const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-                const auto tex_count = material->GetTextureCount(aiTextureType_DIFFUSE);
-                for (int i = 0; i < tex_count; ++i)
-                {
-                    aiString path;
-                    material->GetTexture(aiTextureType_DIFFUSE, i, &path);
-                    texture = tex_loader.load_texture(path.C_Str());
-                }
+                aiString path;
+                material->GetTexture(aiTextureType_DIFFUSE, i, &path);
+                texture = tex_loader.load_texture(path.C_Str());
             }
-            _meshes.emplace_back(vertices, indices, texture, acc_transform);
         }
     }
+
+    _models.emplace_back(name, vertices, indices, texture, acc_transform);
+
     for (int i = 0; i < node->mNumChildren; ++i)
     {
         import_node(node->mChildren[i], scene, tex_loader, acc_transform);
@@ -96,6 +88,14 @@ Scene::Scene(const std::string& file, TextureLoader& tex_loader)
 
 void Scene::instantiate_meshes()
 {
-    for (auto& m : _meshes)
+    for (auto& m : _models)
         m.instantiate();
+}
+
+const Model& Scene::operator[](const std::string& name) const
+{
+    auto model = std::find_if(_models.begin(), _models.end(), [name](const auto& m) { return m.name() == name; });
+    if (model == _models.end())
+        throw std::runtime_error("Unable to find " + name + " in the scene");
+    return *model;
 }

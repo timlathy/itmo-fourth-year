@@ -60,11 +60,14 @@ int main()
     Scene scene("../data/scene.fbx", tex_loader);
     scene.instantiate_meshes();
 
-    camera = std::make_unique<Camera>(width, height, scene.camera_position());
+    glm::vec3 light_position = scene["Moonlight"].position();
+    glm::vec3 camera_position = scene["Camera"].position();
+
+    camera = std::make_unique<Camera>(width, height, camera_position);
 
     GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
     program.use();
-    program.set_uniform("light_position", scene.light_source());
+    program.set_uniform("light_position", light_position);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -76,7 +79,7 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
-        const glm::mat4 shadow_vp = ShadowMapRenderer::shadow_vp_matrix(scene.light_source());
+        const glm::mat4 shadow_vp = ShadowMapRenderer::shadow_vp_matrix(light_position);
         const glm::mat4 shadow_tex_vp = ShadowMapRenderer::vp_to_texcoords(shadow_vp);
         shadow_map_renderer.draw(scene, shadow_vp);
 
@@ -94,7 +97,7 @@ int main()
         program.set_uniform("object_texture", 0); // GL_TEXTURE0
         program.set_uniform("shadow_map", 1); // GL_TEXTURE1
 
-        for (const auto& m : scene.meshes())
+        for (const auto& m : scene.models())
         {
             program.set_uniform("model", m.transform());
             program.set_uniform("model_normal", m.normal_transform());

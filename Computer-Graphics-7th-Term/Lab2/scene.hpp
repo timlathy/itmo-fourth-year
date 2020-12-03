@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "mesh.hpp"
+#include "model.hpp"
 #include "texloader.hpp"
 
 #include <assimp/scene.h>
@@ -10,25 +10,17 @@
 class Scene
 {
   private:
-    std::vector<Mesh> _meshes;
-    glm::vec3 _camera_position;
-    glm::vec3 _light_source;
+    std::vector<Model> _models;
 
     void import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform);
 
   public:
     Scene(const std::string& file, TextureLoader& tex_loader);
     void instantiate_meshes();
-    const std::vector<Mesh> meshes() const
+
+    const Model& operator[](const std::string& name) const;
+    const std::vector<Model> models() const
     {
-        return _meshes;
-    }
-    const glm::vec3& camera_position() const
-    {
-        return _camera_position;
-    }
-    const glm::vec3& light_source() const
-    {
-        return _light_source;
+        return _models;
     }
 };

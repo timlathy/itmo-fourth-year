@@ -1,7 +1,10 @@
-#include "mesh.hpp"
+#include "model.hpp"
 
-void Mesh::instantiate()
+void Model::instantiate()
 {
+    if (empty())
+        return;
+
     glGenBuffers(2, _vertex_buffers);
     glGenVertexArrays(1, &_vao);
     glBindVertexArray(_vao);
@@ -30,8 +33,11 @@ void Mesh::instantiate()
     glBindVertexArray(0);
 }
 
-void Mesh::draw() const
+void Model::draw() const
 {
+    if (empty())
+        return;
+
     if (_texture)
     {
         glActiveTexture(GL_TEXTURE0);
