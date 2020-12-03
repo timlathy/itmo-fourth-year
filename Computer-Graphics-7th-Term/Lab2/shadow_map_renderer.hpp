@@ -5,20 +5,30 @@
 #include "glprogram.hpp"
 #include "scene.hpp"
 
+struct LightSource
+{
+    glm::vec3 position;
+    glm::mat4 projection;
+};
+
 class ShadowMapRenderer
 {
   private:
     GlProgram _program;
-    GLuint _fbo, _depth_texture;
+    GLuint _fbo;
+    std::vector<GLuint> _depth_textures;
+    std::vector<glm::mat4> _shadow_vp_matrices;
+    std::vector<glm::mat4> _shadow_tex_vp_matrices;
 
   public:
-    ShadowMapRenderer();
-    void draw(const Scene& scene, const glm::mat4& light_vp);
-    const GLuint texture() const
+    ShadowMapRenderer(std::vector<LightSource> light_sources);
+    void draw(const Scene& scene);
+    const std::vector<glm::mat4>& shadow_tex_vp_matrices()
     {
-        return _depth_texture;
+        return _shadow_tex_vp_matrices;
     }
-
-    static glm::mat4 shadow_vp_matrix(const glm::vec3& light_position);
-    static glm::mat4 vp_to_texcoords(const glm::mat4& light_vp);
+    const std::vector<GLuint>& textures() const
+    {
+        return _depth_textures;
+    }
 };

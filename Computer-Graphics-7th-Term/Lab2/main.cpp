@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
 #include <memory>
@@ -60,14 +61,19 @@ int main()
     Scene scene("../data/scene.fbx", tex_loader);
     scene.instantiate_meshes();
 
-    glm::vec3 light_position = scene["Moonlight"].position();
     glm::vec3 camera_position = scene["Camera"].position();
-
     camera = std::make_unique<Camera>(width, height, camera_position);
 
-    GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
+    GlProgram program({{"../shader/main.vert", GL_VERTEX_SHADER}, {"../shader/main.frag", GL_FRAGMENT_SHADER}});
     program.use();
-    program.set_uniform("light_position", light_position);
+
+    glm::vec3 moonlight_position = scene["Moonlight"].position();
+    glm::vec3 screen_position = scene["Mac Screen"].position();
+    program.set_uniform("light_position", moonlight_position);
+
+    const glm::mat4 moonlight_projection =
+        glm::ortho(-16.5f, 32.0f, -11.0f, 34.5f, 1.0f /* near plane */, 100.0f /* far plane */);
+    ShadowMapRenderer shadow_maps({{moonlight_position, moonlight_projection}});
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -75,13 +81,9 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    ShadowMapRenderer shadow_map_renderer;
-
     while (!glfwWindowShouldClose(window))
     {
-        const glm::mat4 shadow_vp = ShadowMapRenderer::shadow_vp_matrix(light_position);
-        const glm::mat4 shadow_tex_vp = ShadowMapRenderer::vp_to_texcoords(shadow_vp);
-        shadow_map_renderer.draw(scene, shadow_vp);
+        shadow_maps.draw(scene);
 
         glViewport(0, 0, width, height);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -89,13 +91,13 @@ int main()
 
         program.use();
         program.set_uniform("view_proj", camera->vp_matrix());
-        program.set_uniform("shadow_tex_view_proj", shadow_tex_vp);
+        program.set_uniform("shadow_tex_view_proj", shadow_maps.shadow_tex_vp_matrices()[0]);
 
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, shadow_map_renderer.texture());
+        glBindTexture(GL_TEXTURE_2D, shadow_maps.textures()[0]);
 
         program.set_uniform("object_texture", 0); // GL_TEXTURE0
-        program.set_uniform("shadow_map", 1); // GL_TEXTURE1
+        program.set_uniform("shadow_map", 1);     // GL_TEXTURE1
 
         for (const auto& m : scene.models())
         {
