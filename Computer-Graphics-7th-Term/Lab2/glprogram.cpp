@@ -70,3 +70,9 @@ void GlProgram::set_uniform(const char* name, const glm::mat4& value) const
     const GLint location = glGetUniformLocation(_program, name);
     glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 }
+
+void GlProgram::set_uniform(const char* name, GLint value) const
+{
+    const GLint location = glGetUniformLocation(_program, name);
+    glUniform1i(location, value);
+}

@@ -16,10 +16,12 @@ ShadowMapRenderer::ShadowMapRenderer()
 
     glTexImage2D(
         GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, MAP_WIDTH, MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 }
 
 void ShadowMapRenderer::draw(const Model& model, const glm::mat4& light_vp)
@@ -32,6 +34,8 @@ void ShadowMapRenderer::draw(const Model& model, const glm::mat4& light_vp)
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _depth_texture, 0);
     glDrawBuffer(GL_NONE); // no color buffer
 
+    glCullFace(GL_FRONT);
+
     _program.use();
 
     for (const auto& m : model.meshes())
@@ -41,6 +45,8 @@ void ShadowMapRenderer::draw(const Model& model, const glm::mat4& light_vp)
 
         m.draw();
     }
+
+    glCullFace(GL_BACK);
 }
 
 glm::mat4 ShadowMapRenderer::shadow_vp_matrix(const glm::vec3& light_position)

@@ -91,6 +91,9 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, shadow_map_renderer.texture());
 
+        program.set_uniform("object_texture", 0); // GL_TEXTURE0
+        program.set_uniform("shadow_map", 1); // GL_TEXTURE1
+
         for (const auto& m : model.meshes())
         {
             program.set_uniform("model", m.transform());
