@@ -13,5 +13,8 @@ class Model
   public:
     Model(const std::string& file, TextureLoader& tex_loader);
     void instantiate_meshes();
-    void draw_meshes() const;
+    const std::vector<Mesh> meshes() const
+    {
+        return _meshes;
+    }
 };

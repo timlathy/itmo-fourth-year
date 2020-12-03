@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 project(cglab2)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
+
 add_executable(cglab2 main.cpp glprogram.cpp camera.cpp model.cpp mesh.cpp texloader.cpp)
 
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)

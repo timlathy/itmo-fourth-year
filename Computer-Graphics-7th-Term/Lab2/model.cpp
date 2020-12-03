@@ -6,8 +6,20 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-void import_node(aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes, TextureLoader& tex_loader)
+#include <iostream>
+
+void import_node(
+    aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes, TextureLoader& tex_loader, glm::mat4 acc_transform)
 {
+    /* IMPORTANT: when exporting an FBX model from Blender, use the following settings:
+     * Apply Scalings: FBX All, Forward: -Z, Up: Y, Apply Unit, Apply Transformations */
+    const aiMatrix4x4 t = node->mTransformation;
+    const glm::mat4 transform =
+        glm::mat4(t.a1, t.b1, t.c1, t.d1, t.a2, t.b2, t.c2, t.d2, t.a3, t.b3, t.c3, t.d3, t.a4, t.b4, t.c4, t.d4);
+    acc_transform *= transform;
+
+    std::cout << "Importing node " << node->mName.C_Str() << std::endl;
+
     for (int i = 0; i < node->mNumMeshes; ++i)
     {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
@@ -44,20 +56,20 @@ void import_node(aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes, 
             if (mesh->mMaterialIndex >= 0)
             {
                 const aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-                for (int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); ++i)
+                const auto tex_count = material->GetTextureCount(aiTextureType_DIFFUSE);
+                for (int i = 0; i < tex_count; ++i)
                 {
                     aiString path;
                     material->GetTexture(aiTextureType_DIFFUSE, i, &path);
                     texture = tex_loader.load_texture(path.C_Str());
                 }
             }
-
-            meshes.emplace_back(vertices, indices, texture);
+            meshes.emplace_back(vertices, indices, texture, acc_transform);
         }
     }
     for (int i = 0; i < node->mNumChildren; ++i)
     {
-        import_node(node->mChildren[i], scene, meshes, tex_loader);
+        import_node(node->mChildren[i], scene, meshes, tex_loader, acc_transform);
     }
 }
 
@@ -69,17 +81,11 @@ Model::Model(const std::string& file, TextureLoader& tex_loader)
     if (!scene || !scene->mRootNode)
         throw std::runtime_error("Unable to import model from " + file + ": " + std::string(importer.GetErrorString()));
 
-    import_node(scene->mRootNode, scene, _meshes, tex_loader);
+    import_node(scene->mRootNode, scene, _meshes, tex_loader, glm::mat4(1.0f));
 }
 
 void Model::instantiate_meshes()
 {
     for (auto& m : _meshes)
         m.instantiate();
-}
-
-void Model::draw_meshes() const
-{
-    for (const auto& m : _meshes)
-        m.draw();
 }

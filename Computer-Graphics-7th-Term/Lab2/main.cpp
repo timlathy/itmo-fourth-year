@@ -57,12 +57,8 @@ int main()
         return -1;
     }
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetKeyCallback(window, key_callback);
-
     TextureLoader tex_loader("../data");
-    Model model("../data/desk.fbx", tex_loader);
+    Model model("../data/scene.fbx", tex_loader);
     model.instantiate_meshes();
 
     GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
@@ -72,15 +68,23 @@ int main()
 
     GLint mvp_uniform = program.uniform_location("mvp");
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetKeyCallback(window, key_callback);
+
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 mvp = camera->vp_matrix() * glm::mat4(1.0f) /* model to world */;
-        glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
+        for (const auto& m : model.meshes())
+        {
+            const glm::mat4& model = m.transform();
+            const glm::mat4 mvp = camera->vp_matrix() * model;
+            glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
 
-        model.draw_meshes();
+            m.draw();
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
