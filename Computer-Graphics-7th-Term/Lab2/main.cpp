@@ -7,6 +7,7 @@
 #include "camera.hpp"
 #include "glprogram.hpp"
 #include "model.hpp"
+#include "shadow_map_renderer.hpp"
 
 const int width = 1600;
 const int height = 1200;
@@ -70,11 +71,25 @@ int main()
     glfwSetKeyCallback(window, key_callback);
 
     glEnable(GL_DEPTH_TEST);
+
+    ShadowMapRenderer shadow_map_renderer;
+
     while (!glfwWindowShouldClose(window))
     {
+        const glm::mat4 shadow_vp = ShadowMapRenderer::shadow_vp_matrix(model.light_source());
+        const glm::mat4 shadow_tex_vp = ShadowMapRenderer::vp_to_texcoords(shadow_vp);
+        shadow_map_renderer.draw(model, shadow_vp);
+
+        glViewport(0, 0, width, height);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        program.use();
         program.set_uniform("view_proj", camera->vp_matrix());
+        program.set_uniform("shadow_tex_view_proj", shadow_tex_vp);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, shadow_map_renderer.texture());
 
         for (const auto& m : model.meshes())
         {
