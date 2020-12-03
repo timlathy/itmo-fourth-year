@@ -6,7 +6,7 @@
 
 #include "camera.hpp"
 #include "glprogram.hpp"
-#include "model.hpp"
+#include "scene.hpp"
 #include "shadow_map_renderer.hpp"
 
 const int width = 1600;
@@ -57,14 +57,14 @@ int main()
     }
 
     TextureLoader tex_loader("../data");
-    Model model("../data/scene.fbx", tex_loader);
-    model.instantiate_meshes();
+    Scene scene("../data/scene.fbx", tex_loader);
+    scene.instantiate_meshes();
 
-    camera = std::make_unique<Camera>(width, height, model.camera_position());
+    camera = std::make_unique<Camera>(width, height, scene.camera_position());
 
     GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
     program.use();
-    program.set_uniform("light_position", model.light_source());
+    program.set_uniform("light_position", scene.light_source());
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -76,9 +76,9 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
-        const glm::mat4 shadow_vp = ShadowMapRenderer::shadow_vp_matrix(model.light_source());
+        const glm::mat4 shadow_vp = ShadowMapRenderer::shadow_vp_matrix(scene.light_source());
         const glm::mat4 shadow_tex_vp = ShadowMapRenderer::vp_to_texcoords(shadow_vp);
-        shadow_map_renderer.draw(model, shadow_vp);
+        shadow_map_renderer.draw(scene, shadow_vp);
 
         glViewport(0, 0, width, height);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -94,7 +94,7 @@ int main()
         program.set_uniform("object_texture", 0); // GL_TEXTURE0
         program.set_uniform("shadow_map", 1); // GL_TEXTURE1
 
-        for (const auto& m : model.meshes())
+        for (const auto& m : scene.meshes())
         {
             program.set_uniform("model", m.transform());
             program.set_uniform("model_normal", m.normal_transform());

@@ -3,7 +3,7 @@
 #include <GL/glew.h>
 
 #include "glprogram.hpp"
-#include "model.hpp"
+#include "scene.hpp"
 
 class ShadowMapRenderer
 {
@@ -13,7 +13,7 @@ class ShadowMapRenderer
 
   public:
     ShadowMapRenderer();
-    void draw(const Model& model, const glm::mat4& light_vp);
+    void draw(const Scene& scene, const glm::mat4& light_vp);
     const GLuint texture() const
     {
         return _depth_texture;

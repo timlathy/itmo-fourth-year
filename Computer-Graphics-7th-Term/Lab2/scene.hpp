@@ -7,7 +7,7 @@
 
 #include <assimp/scene.h>
 
-class Model
+class Scene
 {
   private:
     std::vector<Mesh> _meshes;
@@ -17,7 +17,7 @@ class Model
     void import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform);
 
   public:
-    Model(const std::string& file, TextureLoader& tex_loader);
+    Scene(const std::string& file, TextureLoader& tex_loader);
     void instantiate_meshes();
     const std::vector<Mesh> meshes() const
     {

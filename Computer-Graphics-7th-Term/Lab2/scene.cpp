@@ -1,4 +1,4 @@
-#include "model.hpp"
+#include "scene.hpp"
 
 #include <stdexcept>
 
@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-void Model::import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform)
+void Scene::import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform)
 {
     /* IMPORTANT: when exporting an FBX model from Blender, use the following settings:
      * Apply Scalings: FBX All, Forward: -Z, Up: Y, Apply Unit, Apply Transformations */
@@ -83,18 +83,18 @@ void Model::import_node(const aiNode* node, const aiScene* scene, TextureLoader&
     }
 }
 
-Model::Model(const std::string& file, TextureLoader& tex_loader)
+Scene::Scene(const std::string& file, TextureLoader& tex_loader)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(file, aiProcess_Triangulate | aiProcess_FlipUVs);
 
     if (!scene || !scene->mRootNode)
-        throw std::runtime_error("Unable to import model from " + file + ": " + std::string(importer.GetErrorString()));
+        throw std::runtime_error("Unable to import scene from " + file + ": " + std::string(importer.GetErrorString()));
 
     import_node(scene->mRootNode, scene, tex_loader, glm::mat4(1.0f));
 }
 
-void Model::instantiate_meshes()
+void Scene::instantiate_meshes()
 {
     for (auto& m : _meshes)
         m.instantiate();

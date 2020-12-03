@@ -24,7 +24,7 @@ ShadowMapRenderer::ShadowMapRenderer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 }
 
-void ShadowMapRenderer::draw(const Model& model, const glm::mat4& light_vp)
+void ShadowMapRenderer::draw(const Scene& scene, const glm::mat4& light_vp)
 {
     glViewport(0, 0, MAP_WIDTH, MAP_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
@@ -38,7 +38,7 @@ void ShadowMapRenderer::draw(const Model& model, const glm::mat4& light_vp)
 
     _program.use();
 
-    for (const auto& m : model.meshes())
+    for (const auto& m : scene.meshes())
     {
         const glm::mat4 mvp = light_vp * m.transform();
         _program.set_uniform("mvp", mvp);
