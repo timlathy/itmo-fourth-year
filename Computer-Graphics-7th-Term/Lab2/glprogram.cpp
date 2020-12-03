@@ -1,5 +1,7 @@
 #include "glprogram.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <fstream>
 #include <iostream>
 #include <streambuf>
@@ -55,4 +57,16 @@ GlProgram::GlProgram(std::vector<std::pair<std::string, GLenum>> shader_paths)
     glGetProgramiv(_program, GL_LINK_STATUS, &is_linked);
     if (is_linked == GL_FALSE)
         throw std::runtime_error("glLinkProgram failed");
+}
+
+void GlProgram::set_uniform(const char* name, const glm::vec3& value) const
+{
+    const GLint location = glGetUniformLocation(_program, name);
+    glUniform3fv(location, 1, glm::value_ptr(value));
+}
+
+void GlProgram::set_uniform(const char* name, const glm::mat4& value) const
+{
+    const GLint location = glGetUniformLocation(_program, name);
+    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 }

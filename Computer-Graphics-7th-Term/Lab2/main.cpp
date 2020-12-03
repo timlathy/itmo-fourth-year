@@ -1,8 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include <glm/gtc/type_ptr.hpp>
-
 #include <iostream>
 #include <memory>
 
@@ -64,9 +62,9 @@ int main()
     GlProgram program({{"../shader/vertex.vert", GL_VERTEX_SHADER}, {"../shader/fragment.frag", GL_FRAGMENT_SHADER}});
     program.use();
 
-    camera = std::make_unique<Camera>(width, height);
+    program.set_uniform("light_position", model.light_source());
 
-    GLint mvp_uniform = program.uniform_location("mvp");
+    camera = std::make_unique<Camera>(width, height);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -77,11 +75,12 @@ int main()
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        program.set_uniform("view_proj", camera->vp_matrix());
+
         for (const auto& m : model.meshes())
         {
-            const glm::mat4& model = m.transform();
-            const glm::mat4 mvp = camera->vp_matrix() * model;
-            glUniformMatrix4fv(mvp_uniform, 1, GL_FALSE, glm::value_ptr(mvp));
+            program.set_uniform("model", m.transform());
+            program.set_uniform("model_normal", m.normal_transform());
 
             m.draw();
         }

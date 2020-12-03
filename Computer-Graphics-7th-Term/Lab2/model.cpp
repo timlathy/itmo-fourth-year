@@ -8,8 +8,7 @@
 
 #include <iostream>
 
-void import_node(
-    aiNode* node, const aiScene* scene, std::vector<Mesh>& meshes, TextureLoader& tex_loader, glm::mat4 acc_transform)
+void Model::import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform)
 {
     /* IMPORTANT: when exporting an FBX model from Blender, use the following settings:
      * Apply Scalings: FBX All, Forward: -Z, Up: Y, Apply Unit, Apply Transformations */
@@ -19,6 +18,13 @@ void import_node(
     acc_transform *= transform;
 
     std::cout << "Importing node " << node->mName.C_Str() << std::endl;
+
+    // Hack: assume that a node with no meshes and no children is the light source
+    // (the proper way would be to use custom properties I guess)
+    if (node->mNumMeshes == 0 && node->mNumChildren == 0)
+    {
+        _light_source = acc_transform[3]; // extract translation vector from transformation matrix
+    }
 
     for (int i = 0; i < node->mNumMeshes; ++i)
     {
@@ -64,12 +70,12 @@ void import_node(
                     texture = tex_loader.load_texture(path.C_Str());
                 }
             }
-            meshes.emplace_back(vertices, indices, texture, acc_transform);
+            _meshes.emplace_back(vertices, indices, texture, acc_transform);
         }
     }
     for (int i = 0; i < node->mNumChildren; ++i)
     {
-        import_node(node->mChildren[i], scene, meshes, tex_loader, acc_transform);
+        import_node(node->mChildren[i], scene, tex_loader, acc_transform);
     }
 }
 
@@ -81,7 +87,7 @@ Model::Model(const std::string& file, TextureLoader& tex_loader)
     if (!scene || !scene->mRootNode)
         throw std::runtime_error("Unable to import model from " + file + ": " + std::string(importer.GetErrorString()));
 
-    import_node(scene->mRootNode, scene, _meshes, tex_loader, glm::mat4(1.0f));
+    import_node(scene->mRootNode, scene, tex_loader, glm::mat4(1.0f));
 }
 
 void Model::instantiate_meshes()
