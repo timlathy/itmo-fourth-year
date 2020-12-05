@@ -18,6 +18,11 @@ struct Vertex
     }
 };
 
+struct Animation
+{
+    std::vector<glm::mat4> transformation_keys;
+};
+
 class Model
 {
   private:
@@ -27,6 +32,8 @@ class Model
     std::optional<GLuint> _texture;
     glm::mat4 _transformation;
     glm::mat4 _normal_transformation;
+
+    std::vector<Animation> _animations;
 
     union {
         struct
@@ -71,5 +78,14 @@ class Model
     const std::vector<Vertex>& vertices() const
     {
         return _vertices;
+    }
+
+    void add_animation(Animation animation)
+    {
+        _animations.push_back(animation);
+    }
+    const std::vector<Animation>& animations() const
+    {
+        return _animations;
     }
 };

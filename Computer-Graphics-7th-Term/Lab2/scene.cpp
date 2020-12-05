@@ -6,6 +6,9 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include <iostream>
 
 void Scene::import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform)
@@ -84,6 +87,59 @@ Scene::Scene(const std::string& file, TextureLoader& tex_loader)
         throw std::runtime_error("Unable to import scene from " + file + ": " + std::string(importer.GetErrorString()));
 
     import_node(scene->mRootNode, scene, tex_loader, glm::mat4(1.0f));
+
+    /* IMPORTANT: when exporting an FBX model from Blender, use the following settings:
+     * Bake Animation is On, NLA Strips is Off, Force S/E Keying is Off, Sampling Rate is 1, Simplify is 0 */
+    for (int i = 0; i < scene->mNumAnimations; ++i)
+    {
+        const aiAnimation* a = scene->mAnimations[i];
+        std::string animation_name(a->mName.C_Str());
+
+        if (a->mNumChannels != 1)
+            throw std::runtime_error("Unable to import animation " + animation_name + ": a single channel is required");
+
+        const aiNodeAnim* channel = a->mChannels[0];
+
+        std::string target_node_name(channel->mNodeName.C_Str());
+
+        Model* target_model = nullptr;
+        for (int i = 0; i < _models.size(); ++i)
+            if (_models[i].name() == target_node_name)
+                target_model = &_models[i];
+
+        if (target_model == nullptr)
+            throw std::runtime_error("Unable to import animation " + animation_name + ": target node " + target_node_name + " is not found");
+
+        if (channel->mNumPositionKeys != channel->mNumRotationKeys || channel->mNumPositionKeys != channel->mNumScalingKeys)
+            throw std::runtime_error("Unable to import animation " + animation_name + ": T/R/S keys do not match");
+
+        std::vector<glm::mat4> keys;
+        for (int i = 0; i < channel->mNumPositionKeys; ++i)
+        {
+            const auto p = channel->mPositionKeys[i].mValue;
+            const auto r = channel->mRotationKeys[i].mValue.GetMatrix();
+            const auto s = channel->mScalingKeys[i].mValue;
+
+            const glm::vec3 pos = glm::vec3(p[0], p[1], p[2]);
+            const glm::mat3 rot = glm::mat3(r.a1, r.b1, r.c1, r.a2, r.b2, r.c2, r.a3, r.b3, r.c3);
+            const glm::vec3 scale = glm::vec3(s[0], s[1], s[2]);
+
+            glm::mat4 translation = glm::translate(pos);
+
+            glm::mat4 rotation = glm::mat4(1.0f);
+            rotation[0] = glm::vec4(rot[0], 0.0f);
+            rotation[1] = glm::vec4(rot[1], 0.0f);
+            rotation[2] = glm::vec4(rot[2], 0.0f);
+
+            glm::mat4 scaling = glm::scale(scale);
+
+            glm::mat4 model = translation * rotation * scaling;
+
+            keys.push_back(model);
+        }
+
+        target_model->add_animation({keys});
+    }
 }
 
 void Scene::instantiate_meshes()

@@ -11,6 +11,7 @@ class Scene
 {
   private:
     std::vector<Model> _models;
+    std::vector<Animation> _animations;
 
     void import_node(const aiNode* node, const aiScene* scene, TextureLoader& tex_loader, glm::mat4 acc_transform);
 

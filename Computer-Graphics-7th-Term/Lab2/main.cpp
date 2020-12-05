@@ -42,6 +42,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
+
 int main()
 {
     if (glfwInit() != GLFW_TRUE)
@@ -66,7 +67,7 @@ int main()
     }
 
     TextureLoader tex_loader("../data");
-    Scene scene("../data/scene.fbx", tex_loader);
+    Scene scene("../data/scene1.fbx", tex_loader);
     scene.instantiate_meshes();
 
     glm::vec3 camera_position = scene["Camera"].position();
@@ -119,6 +120,8 @@ int main()
     OBBCollisionDetection obbcd(BOUNDING_BOXES, NUM_BOUNDING_BOXES, "BB Observer");
     OBBRenderer obb_renderer;
 
+    int handle_k = 0;
+
     while (!glfwWindowShouldClose(window))
     {
         shadow_maps.draw(scene);
@@ -159,6 +162,15 @@ int main()
                     program.set_uniform("object_light_override", glm::vec3(0.8f));
                     m.draw();
                     program.set_uniform("object_light_override", glm::vec3(0.0f));
+                }
+                else if (m.name() == "Handle Levers")
+                {
+                    const auto& a = m.animations()[0];
+                    if (handle_k >= a.transformation_keys.size())
+                        handle_k = 0;
+
+                    program.set_uniform("model", a.transformation_keys[handle_k++]);
+                    m.draw();
                 }
                 else
                 {
