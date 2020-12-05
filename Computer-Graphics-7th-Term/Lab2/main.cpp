@@ -7,6 +7,9 @@
 
 #include "camera.hpp"
 #include "glprogram.hpp"
+#include "obb_renderer.hpp"
+#include "obbcd.hpp"
+#include "obbcd_data.hpp"
 #include "scene.hpp"
 #include "shadow_map_renderer.hpp"
 
@@ -14,6 +17,8 @@ const int width = 1600;
 const int height = 1200;
 
 std::unique_ptr<Camera> camera;
+
+bool obb_view = false;
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -29,6 +34,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         {
         case GLFW_KEY_ESCAPE:
             glfwSetWindowShouldClose(window, GL_TRUE);
+            break;
+        case GLFW_KEY_F:
+            obb_view = !obb_view;
             break;
         }
     }
@@ -92,8 +100,10 @@ int main()
     const glm::mat4 moonlight_view = glm::lookAt(scene["Moonlight"].position(), glm::vec3(0.0f), CAMERA_UP);
     const glm::mat4 moonlight_vp = moonlight_projection * moonlight_view;
 
-    const glm::mat4 spotlight_projection = glm::perspective(40.0f, 1.0f /* shadow map textures are square */, 1.0f, 100.0f);
-    const glm::mat4 spotlight_view = glm::lookAt(scene["Mac Screen Light"].position(), scene["Mac Screen Light Direction"].position(), CAMERA_UP);
+    const glm::mat4 spotlight_projection =
+        glm::perspective(40.0f, 1.0f /* shadow map textures are square */, 1.0f, 100.0f);
+    const glm::mat4 spotlight_view =
+        glm::lookAt(scene["Mac Screen Light"].position(), scene["Mac Screen Light Direction"].position(), CAMERA_UP);
     const glm::mat4 spotlight_vp = spotlight_projection * spotlight_view;
 
     ShadowMapRenderer shadow_maps({{lights[0], moonlight_vp}, {lights[1], spotlight_vp}});
@@ -106,6 +116,9 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
+    OBBCollisionDetection obbcd(BOUNDING_BOXES, NUM_BOUNDING_BOXES, "BB Observer");
+    OBBRenderer obb_renderer;
+
     while (!glfwWindowShouldClose(window))
     {
         shadow_maps.draw(scene);
@@ -113,38 +126,44 @@ int main()
         glViewport(0, 0, width, height);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        program.use();
-        program.set_uniform("vp", camera->vp_matrix());
-
-        program.set_uniform("object_texture", 0); // GL_TEXTURE0
-
-        int num_shadow_maps = shadow_maps.textures().size();
-        GLint shadow_samplers[num_shadow_maps];
-        for (int i = 0; i < num_shadow_maps; ++i)
+        if (obb_view)
         {
-            shadow_samplers[i] = 1 + i; // GL_TEXTURE1 + i
-            glActiveTexture(GL_TEXTURE0 + shadow_samplers[i]);
-            glBindTexture(GL_TEXTURE_2D, shadow_maps.textures()[i]);
+            obb_renderer.draw(obbcd, camera->vp_matrix());
         }
-        program.set_uniform_array("shadow_maps", shadow_samplers, num_shadow_maps);
-
-        program.set_uniform("object_light_override", glm::vec3(0.0f));
-
-        for (const auto& m : scene.models())
+        else
         {
-            program.set_uniform("model", m.transform());
-            program.set_uniform("model_normal", m.normal_transformation());
+            program.use();
+            program.set_uniform("vp", camera->vp_matrix());
 
-            if (m.name() == "Mac Screen")
+            program.set_uniform("object_texture", 0); // GL_TEXTURE0
+
+            int num_shadow_maps = shadow_maps.textures().size();
+            GLint shadow_samplers[num_shadow_maps];
+            for (int i = 0; i < num_shadow_maps; ++i)
             {
-                program.set_uniform("object_light_override", glm::vec3(0.8f));
-                m.draw();
-                program.set_uniform("object_light_override", glm::vec3(0.0f));
+                shadow_samplers[i] = 1 + i; // GL_TEXTURE1 + i
+                glActiveTexture(GL_TEXTURE0 + shadow_samplers[i]);
+                glBindTexture(GL_TEXTURE_2D, shadow_maps.textures()[i]);
             }
-            else
+            program.set_uniform_array("shadow_maps", shadow_samplers, num_shadow_maps);
+
+            program.set_uniform("object_light_override", glm::vec3(0.0f));
+
+            for (const auto& m : scene.models())
             {
-                m.draw();
+                program.set_uniform("model", m.transform());
+                program.set_uniform("model_normal", m.normal_transformation());
+
+                if (m.name() == "Mac Screen")
+                {
+                    program.set_uniform("object_light_override", glm::vec3(0.8f));
+                    m.draw();
+                    program.set_uniform("object_light_override", glm::vec3(0.0f));
+                }
+                else
+                {
+                    m.draw();
+                }
             }
         }
 
@@ -161,7 +180,15 @@ int main()
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
             movement -= CAMERA_RIGHT;
         if (glm::length(movement) > 0.0f)
-            camera->on_key_movement(movement);
+        {
+            glm::vec3 delta = camera->update_position(movement);
+            obbcd.update_observer_position(delta);
+            if (obbcd.has_collisions())
+            {
+                glm::vec3 rev_delta = camera->update_position(-movement);
+                obbcd.update_observer_position(rev_delta);
+            }
+        }
     }
 
     glfwTerminate();

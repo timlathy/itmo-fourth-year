@@ -22,5 +22,5 @@ class Camera
     Camera(int view_width, int view_height, const glm::vec3& position);
     glm::mat4 vp_matrix() const;
     void on_mouse_movement(double xpos, double ypos);
-    void on_key_movement(glm::vec3 direction);
+    glm::vec3 update_position(glm::vec3 direction);
 };

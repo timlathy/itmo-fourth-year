@@ -56,11 +56,15 @@ void Camera::on_mouse_movement(double xpos, double ypos)
     _camera_direction = glm::normalize(_camera_direction);
 }
 
-void Camera::on_key_movement(glm::vec3 direction)
+glm::vec3 Camera::update_position(glm::vec3 direction)
 {
     glm::vec3 horiz_axis = glm::normalize(glm::cross(_camera_direction, CAMERA_UP));
     direction *= MOVEMENT_SPEED;
 
-    _camera_world_pos.x += (direction.z * _camera_direction.x) + (direction.x * horiz_axis.x);
-    _camera_world_pos.z += (direction.z * _camera_direction.z) + (direction.x * horiz_axis.z);
+    glm::vec3 delta(0.0f);
+    delta.x = (direction.z * _camera_direction.x) + (direction.x * horiz_axis.x);
+    delta.z = (direction.z * _camera_direction.z) + (direction.x * horiz_axis.z);
+
+    _camera_world_pos += delta;
+    return delta;
 }
