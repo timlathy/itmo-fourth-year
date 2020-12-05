@@ -2,8 +2,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "camera.hpp"
-
 const float MAP_WIDTH = 1024;
 const float MAP_HEIGHT = 1024;
 
@@ -28,17 +26,11 @@ ShadowMapRenderer::ShadowMapRenderer(std::vector<LightSource> light_sources)
     }
     for (const auto& source : light_sources)
     {
-        const float near_plane = 1.0f;
-        const float far_plane = 100.0f;
-
-        const glm::mat4 view = glm::lookAt(source.position, glm::vec3(0.0f, 0.0f, 0.0f), CAMERA_UP);
-        const glm::mat4 vp = source.projection * view;
-
-        _shadow_vp_matrices.push_back(vp);
+        _shadow_vp_matrices.push_back(source.vp);
 
         // Divide the coordinates by two ([-1;1] -> [-0.5;0.5]) and add 0.5 to get texture VP matrix
         const glm::mat4 transform(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
-        const glm::mat4 tex_vp = transform * vp;
+        const glm::mat4 tex_vp = transform * source.vp;
 
         _shadow_tex_vp_matrices.push_back(tex_vp);
     }
@@ -48,7 +40,6 @@ void ShadowMapRenderer::draw(const Scene& scene)
 {
     glViewport(0, 0, MAP_WIDTH, MAP_HEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
-    glClear(GL_DEPTH_BUFFER_BIT);
 
     _program.use();
 
@@ -58,6 +49,7 @@ void ShadowMapRenderer::draw(const Scene& scene)
     {
         glBindTexture(GL_TEXTURE_2D, _depth_textures[i]);
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _depth_textures[i], 0);
+        glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_NONE); // no color buffer
 
         for (const auto& m : scene.models())

@@ -8,7 +8,7 @@
 struct LightSource
 {
     glm::vec3 position;
-    glm::mat4 projection;
+    glm::mat4 vp;
 };
 
 class ShadowMapRenderer

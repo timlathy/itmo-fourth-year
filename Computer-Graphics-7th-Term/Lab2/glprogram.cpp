@@ -77,6 +77,11 @@ void GlProgram::set_uniform(const char* name, GLint value) const
     glUniform1i(location, value);
 }
 
+void GlProgram::set_uniform_array(const char* name, const glm::mat4* values, size_t count) const
+{
+    glUniformMatrix4fv(glGetUniformLocation(_program, name), count, GL_FALSE, glm::value_ptr(values[0]));
+}
+
 void GlProgram::set_uniform_array(const char* name, const glm::vec3* values, size_t count) const
 {
     glUniform3fv(glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
@@ -85,4 +90,9 @@ void GlProgram::set_uniform_array(const char* name, const glm::vec3* values, siz
 void GlProgram::set_uniform_array(const char* name, const glm::vec2* values, size_t count) const
 {
     glUniform2fv(glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
+}
+
+void GlProgram::set_uniform_array(const char* name, const GLint* values, size_t count) const
+{
+    glUniform1iv(glGetUniformLocation(_program, name), count, values);
 }

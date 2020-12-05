@@ -18,8 +18,10 @@ class GlProgram
     void set_uniform(const char* name, const glm::mat4& value) const;
     void set_uniform(const char* name, GLint value) const;
 
+    void set_uniform_array(const char* name, const glm::mat4* values, size_t count) const;
     void set_uniform_array(const char* name, const glm::vec3* values, size_t count) const;
     void set_uniform_array(const char* name, const glm::vec2* values, size_t count) const;
+    void set_uniform_array(const char* name, const GLint* values, size_t count) const;
 
     void use() const
     {

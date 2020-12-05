@@ -89,7 +89,16 @@ int main()
 
     const glm::mat4 moonlight_projection =
         glm::ortho(-16.5f, 32.0f, -11.0f, 34.5f, 1.0f /* near plane */, 100.0f /* far plane */);
-    ShadowMapRenderer shadow_maps({{lights[0], moonlight_projection}});
+    const glm::mat4 moonlight_view = glm::lookAt(scene["Moonlight"].position(), glm::vec3(0.0f), CAMERA_UP);
+    const glm::mat4 moonlight_vp = moonlight_projection * moonlight_view;
+
+    const glm::mat4 spotlight_projection = glm::perspective(40.0f, 1.0f /* shadow map textures are square */, 1.0f, 100.0f);
+    const glm::mat4 spotlight_view = glm::lookAt(scene["Mac Screen Light"].position(), scene["Mac Screen Light Direction"].position(), CAMERA_UP);
+    const glm::mat4 spotlight_vp = spotlight_projection * spotlight_view;
+
+    ShadowMapRenderer shadow_maps({{lights[0], moonlight_vp}, {lights[1], spotlight_vp}});
+    const auto& shadow_tex_vps = shadow_maps.shadow_tex_vp_matrices();
+    program.set_uniform_array("shadow_tex_vps", shadow_tex_vps.data(), shadow_tex_vps.size());
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
@@ -106,14 +115,21 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         program.use();
-        program.set_uniform("view_proj", camera->vp_matrix());
-        program.set_uniform("shadow_tex_view_proj", shadow_maps.shadow_tex_vp_matrices()[0]);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, shadow_maps.textures()[0]);
+        program.set_uniform("vp", camera->vp_matrix());
 
         program.set_uniform("object_texture", 0); // GL_TEXTURE0
-        program.set_uniform("shadow_map", 1);     // GL_TEXTURE1
+
+        int num_shadow_maps = shadow_maps.textures().size();
+        GLint shadow_samplers[num_shadow_maps];
+        for (int i = 0; i < num_shadow_maps; ++i)
+        {
+            shadow_samplers[i] = 1 + i; // GL_TEXTURE1 + i
+            glActiveTexture(GL_TEXTURE0 + shadow_samplers[i]);
+            glBindTexture(GL_TEXTURE_2D, shadow_maps.textures()[i]);
+        }
+        program.set_uniform_array("shadow_maps", shadow_samplers, num_shadow_maps);
+
+        program.set_uniform("object_light_override", glm::vec3(0.0f));
 
         for (const auto& m : scene.models())
         {
@@ -122,10 +138,9 @@ int main()
 
             if (m.name() == "Mac Screen")
             {
-                glm::vec3 colors_hack[2] = {glm::vec3(0.0f), glm::vec3(0.8f)};
-                program.set_uniform_array("light_ambient_color", colors_hack, 2);
+                program.set_uniform("object_light_override", glm::vec3(0.8f));
                 m.draw();
-                program.set_uniform_array("light_ambient_color", light_ambient_colors, 2);
+                program.set_uniform("object_light_override", glm::vec3(0.0f));
             }
             else
             {
