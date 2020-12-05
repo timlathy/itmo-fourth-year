@@ -18,11 +18,42 @@ uniform sampler2DShadow shadow_maps[2];
 
 out layout (location = 0) vec4 out_color;
 
-float shadow_light(sampler2DShadow map, vec4 shadow_pos, float incoming_light_angle)
+float shadow_light(sampler2DShadow shadow_map, vec4 shadow_pos, float incoming_light_angle)
 {
     float bias = clamp(0.005 * (1.0 - incoming_light_angle), 0, 0.01);
     vec3 coord = shadow_pos.xyz / shadow_pos.w;
-    return 0.4 + (0.6 * texture(map, vec3(coord.xy, coord.z - bias)));
+    return 0.4 + (0.6 * texture(shadow_map, vec3(coord.xy, coord.z - bias)));
+}
+
+float light_source_intensity(int i, vec3 light_direction)
+{
+    float intensity = 1;
+
+    // Attenuation > 0? This is a spotlight
+    if (spotlight_attenuation[i].x > 0)
+    {
+        float dist = length(light_position[i] - frag_pos);
+        float attenuation = spotlight_attenuation[i].x; // constant
+        attenuation += spotlight_attenuation[i].y * dist; // linear
+        attenuation += spotlight_attenuation[i].z * dist * dist; // quadratic
+        float spot_intensity = 1.0 / attenuation;
+
+        vec3 spot_direction = normalize(-spotlight_direction[i]);
+        float angle = dot(light_direction, spot_direction);
+        if (angle < spotlight_cutoff_cos[i].x) // outer cutoff
+        {
+            spot_intensity = 0;
+        }
+        else
+        {
+            float spot = smoothstep(spotlight_cutoff_cos[i].x, spotlight_cutoff_cos[i].y, angle);
+            spot_intensity *= pow(spot, 2);
+        }
+
+        intensity *= spot_intensity;
+    }
+
+    return intensity;
 }
 
 void main()
@@ -40,38 +71,12 @@ void main()
         for (int i = 0; i < 2; ++i)
         {
             vec3 light_direction = normalize(light_position[i] - frag_pos);
-
-            float intensity = 1;
-
-            // Attenuation > 0? This is a spotlight
-            if (spotlight_attenuation[i].x > 0)
-            {
-                float dist = length(light_position[i] - frag_pos);
-                float attenuation = spotlight_attenuation[i].x; // constant
-                attenuation += spotlight_attenuation[i].y * dist; // linear
-                attenuation += spotlight_attenuation[i].z * dist * dist; // quadratic
-                float spot_intensity = 1.0 / attenuation;
-
-                vec3 spot_direction = normalize(-spotlight_direction[i]);
-                float angle = dot(light_direction, spot_direction);
-                if (angle < spotlight_cutoff_cos[i].x) // outer cutoff
-                {
-                    spot_intensity = 0;
-                }
-                else
-                {
-                    float spot = smoothstep(spotlight_cutoff_cos[i].x, spotlight_cutoff_cos[i].y, angle);
-                    spot_intensity *= pow(spot, 2);
-                }
-
-                intensity *= spot_intensity;
-            }
-
             float incoming_light_angle = dot(normal, light_direction);
+
+            float intensity = light_source_intensity(i, light_direction);
 
             vec3 reflected = light_ambient_color[i];
             reflected += intensity * light_diffuse_color[i] * clamp(incoming_light_angle, 0, 1);
-
             reflected *= intensity * shadow_light(shadow_maps[i], frag_shadow_pos[i], incoming_light_angle);
 
             total_reflected += reflected;
