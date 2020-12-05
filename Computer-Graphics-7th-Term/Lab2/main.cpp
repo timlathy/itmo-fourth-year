@@ -66,16 +66,26 @@ int main()
 
     GlProgram program({{"../shader/main.vert", GL_VERTEX_SHADER}, {"../shader/main.frag", GL_FRAGMENT_SHADER}});
 
-    glm::vec3 lights[2] = {scene["Moonlight"].position(), scene["Mac Screen"].position()};
-    glm::vec3 light_ambient_colors[2] = {glm::vec3(0.15, 0.15, 0.2), glm::vec3(0.0f, 0.0f, 0.0f)};
-    glm::vec3 light_diffuse_colors[2] = {glm::vec3(0.8, 0.8, 0.85), glm::vec3(0.0f, 0.0f, 0.0)};
-    bool light_is_directional[2] = {false, true};
+    glm::vec3 lights[2] = {scene["Moonlight"].position(), scene["Mac Screen Light"].position()};
+    glm::vec3 light_ambient_colors[2] = {glm::vec3(0.15f, 0.15f, 0.2f), glm::vec3(0.1f, 0.1f, 0.1f)};
+    glm::vec3 light_diffuse_colors[2] = {glm::vec3(0.8f, 0.8f, 0.85f), glm::vec3(1.0f, 1.0f, 1.0)};
+    glm::vec3 spotlight_direction[2] = {
+        glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(-(
+                                         scene["Mac Screen Light"].position() -
+                                         scene["Mac Screen Light Direction"].position()))}; //::vec3(1.0f, 0.0f, 0.0f)};
+    glm::vec2 spotlight_cutoff_cos[2] = {
+        glm::vec2(0.0f),
+        glm::vec2(glm::cos(glm::radians(85.0f)) /* outer */, glm::cos(glm::radians(12.0f)) /* inner */)};
+    glm::vec3 spotlight_attenuation[2] = {
+        glm::vec3(0.0f), glm::vec3(1.0f /* constant */, 0.01f /* linear */, 0.01f /* quadratic */)};
 
     program.use();
     program.set_uniform_array("light_position", lights, 2);
     program.set_uniform_array("light_ambient_color", light_ambient_colors, 2);
     program.set_uniform_array("light_diffuse_color", light_diffuse_colors, 2);
-    program.set_uniform_array("light_is_directional", light_is_directional, 2);
+    program.set_uniform_array("spotlight_direction", spotlight_direction, 2);
+    program.set_uniform_array("spotlight_attenuation", spotlight_attenuation, 2);
+    program.set_uniform_array("spotlight_cutoff_cos", spotlight_cutoff_cos, 2);
 
     const glm::mat4 moonlight_projection =
         glm::ortho(-16.5f, 32.0f, -11.0f, 34.5f, 1.0f /* near plane */, 100.0f /* far plane */);
@@ -108,9 +118,19 @@ int main()
         for (const auto& m : scene.models())
         {
             program.set_uniform("model", m.transform());
-            program.set_uniform("model_normal", m.normal_transform());
+            program.set_uniform("model_normal", m.normal_transformation());
 
-            m.draw();
+            if (m.name() == "Mac Screen")
+            {
+                glm::vec3 colors_hack[2] = {glm::vec3(0.0f), glm::vec3(0.8f)};
+                program.set_uniform_array("light_ambient_color", colors_hack, 2);
+                m.draw();
+                program.set_uniform_array("light_ambient_color", light_ambient_colors, 2);
+            }
+            else
+            {
+                m.draw();
+            }
         }
 
         glfwSwapBuffers(window);

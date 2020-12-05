@@ -19,7 +19,7 @@ class GlProgram
     void set_uniform(const char* name, GLint value) const;
 
     void set_uniform_array(const char* name, const glm::vec3* values, size_t count) const;
-    void set_uniform_array(const char* name, const bool* values, size_t count) const;
+    void set_uniform_array(const char* name, const glm::vec2* values, size_t count) const;
 
     void use() const
     {
