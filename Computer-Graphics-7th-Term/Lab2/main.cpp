@@ -121,6 +121,7 @@ int main()
     OBBRenderer obb_renderer;
 
     int handle_k = 0;
+    int handle_k_scaler = 0;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -163,13 +164,21 @@ int main()
                     m.draw();
                     program.set_uniform("object_light_override", glm::vec3(0.0f));
                 }
-                else if (m.name() == "Handle Levers")
+                else if (m.name() == "Door" || m.name() == "Handles" || m.name() == "Handle Levers")
                 {
-                    const auto& a = m.animations()[0];
-                    if (handle_k >= a.transformation_keys.size())
+                    if (++handle_k_scaler == 2)
+                    {
+                        handle_k++;
+                        handle_k_scaler = 0;
+                    }
+
+                    const auto& animation = m.animations()[0];
+                    if (handle_k >= animation.transformation_keys.size())
                         handle_k = 0;
 
-                    program.set_uniform("model", a.transformation_keys[handle_k++]);
+                    const auto& frame = animation.transformation_keys[handle_k];
+
+                    program.set_uniform("model", frame);
                     m.draw();
                 }
                 else

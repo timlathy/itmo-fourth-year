@@ -90,6 +90,8 @@ Scene::Scene(const std::string& file, TextureLoader& tex_loader)
 
     /* IMPORTANT: when exporting an FBX model from Blender, use the following settings:
      * Bake Animation is On, NLA Strips is Off, Force S/E Keying is Off, Sampling Rate is 1, Simplify is 0 */
+    /* If you have parent-child relationships with animations, we don't handle that.
+     * 3D View -> Object -> Animation -> Bake Action (check Visual Keying and Clear Parents) */
     for (int i = 0; i < scene->mNumAnimations; ++i)
     {
         const aiAnimation* a = scene->mAnimations[i];
@@ -108,9 +110,11 @@ Scene::Scene(const std::string& file, TextureLoader& tex_loader)
                 target_model = &_models[i];
 
         if (target_model == nullptr)
-            throw std::runtime_error("Unable to import animation " + animation_name + ": target node " + target_node_name + " is not found");
+            throw std::runtime_error(
+                "Unable to import animation " + animation_name + ": target node " + target_node_name + " is not found");
 
-        if (channel->mNumPositionKeys != channel->mNumRotationKeys || channel->mNumPositionKeys != channel->mNumScalingKeys)
+        if (channel->mNumPositionKeys != channel->mNumRotationKeys ||
+            channel->mNumPositionKeys != channel->mNumScalingKeys)
             throw std::runtime_error("Unable to import animation " + animation_name + ": T/R/S keys do not match");
 
         std::vector<glm::mat4> keys;
@@ -133,12 +137,21 @@ Scene::Scene(const std::string& file, TextureLoader& tex_loader)
 
             glm::mat4 scaling = glm::scale(scale);
 
-            glm::mat4 model = translation * rotation * scaling;
+            glm::mat4 trs = translation * rotation * scaling;
 
-            keys.push_back(model);
+            keys.push_back(trs);
         }
 
-        target_model->add_animation({keys});
+        // https://blender.stackexchange.com/q/119664
+        // This is an incredibly dirty hack (compare model position with the first key position)
+        // to determine what model this animation actually belongs to, otherwise
+        // we'll get _all_ animations for _each_ node that has an animation.
+        // I couldn't find any concrete info on whether this is an issue with the Blender's FBX exporter
+        // or a limitation of the file format itself. Fun stuff.
+        if (keys[0][3] == target_model->transform()[3])
+        {
+            target_model->add_animation({keys});
+        }
     }
 }
 
