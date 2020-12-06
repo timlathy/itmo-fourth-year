@@ -42,7 +42,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
-
 int main()
 {
     if (glfwInit() != GLFW_TRUE)
@@ -125,6 +124,16 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        for (auto& m : scene.models())
+        {
+            if (m.name() == "Door")
+                m.play_animation(scene.animation_keys("Door|D Door"));
+            else if (m.name() == "Handles")
+                m.play_animation(scene.animation_keys("Handles|H Door"));
+            else if (m.name() == "Handle Levers")
+                m.play_animation(scene.animation_keys("Handle Levers|HL Door"));
+        }
+
         shadow_maps.draw(scene);
 
         glViewport(0, 0, width, height);
@@ -163,23 +172,6 @@ int main()
                     program.set_uniform("object_light_override", glm::vec3(0.8f));
                     m.draw();
                     program.set_uniform("object_light_override", glm::vec3(0.0f));
-                }
-                else if (m.name() == "Door" || m.name() == "Handles" || m.name() == "Handle Levers")
-                {
-                    if (++handle_k_scaler == 2)
-                    {
-                        handle_k++;
-                        handle_k_scaler = 0;
-                    }
-
-                    const auto& animation = m.animations()[0];
-                    if (handle_k >= animation.transformation_keys.size())
-                        handle_k = 0;
-
-                    const auto& frame = animation.transformation_keys[handle_k];
-
-                    program.set_uniform("model", frame);
-                    m.draw();
                 }
                 else
                 {

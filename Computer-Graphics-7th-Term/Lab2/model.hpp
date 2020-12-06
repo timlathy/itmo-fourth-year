@@ -18,9 +18,10 @@ struct Vertex
     }
 };
 
-struct Animation
+struct AnimationFrame
 {
-    std::vector<glm::mat4> transformation_keys;
+    glm::mat4 transformation;
+    glm::mat4 normal_transformation;
 };
 
 class Model
@@ -33,7 +34,7 @@ class Model
     glm::mat4 _transformation;
     glm::mat4 _normal_transformation;
 
-    std::vector<Animation> _animations;
+    std::optional<std::pair<int, AnimationFrame>> _animation_frame;
 
     union {
         struct
@@ -50,7 +51,7 @@ class Model
         std::optional<GLuint> texture, glm::mat4 transform)
         : _name(name), _vertices(vertices), _indices(indices), _texture(texture), _transformation(transform)
     {
-        _normal_transformation = glm::transpose(glm::inverse(transform));
+        _normal_transformation = normal_transformation(transform);
     }
     void instantiate();
     void draw() const;
@@ -65,27 +66,41 @@ class Model
     }
     const glm::mat4& transform() const
     {
+        if (_animation_frame)
+            return _animation_frame->second.transformation;
+
         return _transformation;
     }
     const glm::mat4& normal_transformation() const
     {
+        if (_animation_frame)
+            return _animation_frame->second.normal_transformation;
+
         return _normal_transformation;
     }
     glm::vec3 position() const
     {
-        return _transformation[3];
+        return transform()[3];
     }
     const std::vector<Vertex>& vertices() const
     {
         return _vertices;
     }
 
-    void add_animation(Animation animation)
+    bool play_animation(const std::vector<AnimationFrame>& frames)
     {
-        _animations.push_back(animation);
+        int frame = _animation_frame ? _animation_frame->first : -1;
+        if (++frame >= frames.size())
+        {
+            _animation_frame = {};
+            return false;
+        }
+        _animation_frame = {frame, frames[frame]};
+        return true;
     }
-    const std::vector<Animation>& animations() const
+
+    static glm::mat4 normal_transformation(glm::mat4 transformation)
     {
-        return _animations;
+        return glm::transpose(glm::inverse(transformation));
     }
 };
