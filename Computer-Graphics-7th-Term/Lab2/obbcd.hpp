@@ -19,10 +19,16 @@ class OBBCollisionDetection
 {
   private:
     std::vector<OrientedBoundingBox> _bboxes;
+    std::vector<OrientedBoundingBox> _interaction_bboxes;
     OrientedBoundingBox _observer_bbox;
 
   public:
-    OBBCollisionDetection(const OrientedBoundingBox* bboxes, size_t num_bboxes, OrientedBoundingBox observer);
+    OBBCollisionDetection(
+        std::vector<OrientedBoundingBox> bboxes, std::vector<OrientedBoundingBox> interaction_bboxes,
+        OrientedBoundingBox observer)
+        : _bboxes(bboxes), _interaction_bboxes(interaction_bboxes), _observer_bbox(observer)
+    {
+    }
     const std::vector<OrientedBoundingBox>& bounding_boxes() const
     {
         return _bboxes;
@@ -41,4 +47,5 @@ class OBBCollisionDetection
         _observer_bbox.position += delta;
     }
     bool has_collisions() const;
+    std::optional<OrientedBoundingBox> interaction_collision() const;
 };

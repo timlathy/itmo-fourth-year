@@ -8,8 +8,8 @@
 
 #include "camera.hpp"
 #include "glprogram.hpp"
-#include "obb_renderer.hpp"
 #include "hud_renderer.hpp"
+#include "obb_renderer.hpp"
 #include "obbcd.hpp"
 #include "obbcd_data.hpp"
 #include "scene.hpp"
@@ -118,17 +118,18 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    OBBCollisionDetection obbcd(BOUNDING_BOXES, NUM_BOUNDING_BOXES, BB_OBSERVER);
+    OBBCollisionDetection obbcd(BOUNDING_BOXES, INTERACTION_BOUNDING_BOXES, BB_OBSERVER);
     OBBRenderer obb_renderer;
     HUDRenderer hud_renderer;
-
-    bool c = false;
 
     const uint64_t t_per_frame = 1000 / 60; // animation is intended to be run at 60fps
     uint64_t t_accumulated = 0;
     uint64_t t_frame_start =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
             .count();
+
+    bool door_opening = false;
+    bool door_opened = false;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -142,7 +143,7 @@ int main()
         while (t_accumulated > t_per_frame)
         {
             t_accumulated -= t_per_frame;
-            if (c)
+            if (door_opening)
             {
                 for (auto& m : scene.models())
                 {
@@ -154,10 +155,11 @@ int main()
                         m.play_animation(scene.animation_keys("Handle Levers|HL Door"));
                 }
 
-                c = camera->animate_position(
+                door_opening = camera->animate_position(
                     scene.animation_keys("Camera|C Door"), scene.animation_keys("Camera Direction|CD Door"));
-                if (!c)
+                if (!door_opening)
                 {
+                    door_opened = true;
                     obbcd.update_box(BB_DOOR_OPEN);
                 }
             }
@@ -209,7 +211,16 @@ int main()
             }
         }
 
-        hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-door.png"));
+        if (!door_opened && !door_opening)
+        {
+            auto interaction = obbcd.interaction_collision();
+            if (interaction && interaction->name == "BB Interaction Door")
+            {
+                hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-door.png"));
+                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+                    door_opening = true;
+            }
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();

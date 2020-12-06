@@ -1,13 +1,5 @@
 #include "obbcd.hpp"
 
-OBBCollisionDetection::OBBCollisionDetection(
-    const OrientedBoundingBox* bboxes, size_t num_bboxes, OrientedBoundingBox observer)
-    : _bboxes(num_bboxes), _observer_bbox(observer)
-{
-    for (int i = 0; i < num_bboxes; ++i)
-        _bboxes.push_back(bboxes[i]);
-}
-
 bool separating_plane(
     const glm::vec3& rel_pos, const glm::vec3& plane, const OrientedBoundingBox& box1, const OrientedBoundingBox& box2)
 {
@@ -49,4 +41,14 @@ bool OBBCollisionDetection::has_collisions() const
             return true;
     }
     return false;
+}
+
+std::optional<OrientedBoundingBox> OBBCollisionDetection::interaction_collision() const
+{
+    for (const auto& bbox : _interaction_bboxes)
+    {
+        if (check_collision(bbox, _observer_bbox))
+            return bbox;
+    }
+    return {};
 }
