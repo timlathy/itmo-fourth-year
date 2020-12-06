@@ -9,6 +9,7 @@
 #include "camera.hpp"
 #include "glprogram.hpp"
 #include "obb_renderer.hpp"
+#include "hud_renderer.hpp"
 #include "obbcd.hpp"
 #include "obbcd_data.hpp"
 #include "scene.hpp"
@@ -119,8 +120,9 @@ int main()
 
     OBBCollisionDetection obbcd(BOUNDING_BOXES, NUM_BOUNDING_BOXES, BB_OBSERVER);
     OBBRenderer obb_renderer;
+    HUDRenderer hud_renderer;
 
-    bool c = true;
+    bool c = false;
 
     const uint64_t t_per_frame = 1000 / 60; // animation is intended to be run at 60fps
     uint64_t t_accumulated = 0;
@@ -206,6 +208,8 @@ int main()
                 }
             }
         }
+
+        hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-door.png"));
 
         glfwSwapBuffers(window);
         glfwPollEvents();
