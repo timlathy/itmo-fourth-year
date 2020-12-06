@@ -33,6 +33,10 @@ class OBBCollisionDetection
     {
         return _bboxes;
     }
+    const std::vector<OrientedBoundingBox>& interaction_boxes() const
+    {
+        return _interaction_bboxes;
+    }
     const OrientedBoundingBox& observer_box() const
     {
         return _observer_bbox;
@@ -48,4 +52,6 @@ class OBBCollisionDetection
     }
     bool has_collisions() const;
     std::optional<OrientedBoundingBox> interaction_collision() const;
+
+    static bool check_collision(const OrientedBoundingBox& box1, const OrientedBoundingBox& box2);
 };

@@ -11,7 +11,7 @@ bool separating_plane(
                                              fabs(glm::dot(box2.rotation_z * box2.half_size.z, plane)));
 }
 
-bool check_collision(const OrientedBoundingBox& box1, const OrientedBoundingBox& box2)
+bool OBBCollisionDetection::check_collision(const OrientedBoundingBox& box1, const OrientedBoundingBox& box2)
 {
     glm::vec3 rel_pos = box2.position - box1.position;
 

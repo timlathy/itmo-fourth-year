@@ -43,6 +43,11 @@ glm::mat4 bounding_box_transformation_matrix(const OrientedBoundingBox& bbox)
     return model;
 }
 
+static const glm::vec3 _filter_red = {0.8, 0.1, 0.1};
+static const glm::vec3 _filter_green = {0.1, 0.8, 0.1};
+static const glm::vec3 _filter_blue = {0.1, 0.1, 0.8};
+static const glm::vec3 _filter_orange = {0.8, 0.4, 0.1};
+
 void OBBRenderer::draw(const OBBCollisionDetection& obbcd, const glm::mat4& camera_vp)
 {
     _program.use();
@@ -50,8 +55,31 @@ void OBBRenderer::draw(const OBBCollisionDetection& obbcd, const glm::mat4& came
 
     glBindVertexArray(_vao);
 
+    OrientedBoundingBox observer_collider = obbcd.observer_box();
+    observer_collider.half_size += glm::vec3(0.1, 0.1, 0.1);
+
     for (const auto& bbox : obbcd.bounding_boxes())
     {
+        glm::vec3 filter;
+        if (OBBCollisionDetection::check_collision(bbox, observer_collider))
+            filter = _filter_red;
+        else
+            filter = _filter_green;
+
+        _program.set_uniform("color_filter", filter);
+        _program.set_uniform("model", bounding_box_transformation_matrix(bbox));
+        glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
+    }
+
+    for (const auto& bbox : obbcd.interaction_boxes())
+    {
+        glm::vec3 filter;
+        if (OBBCollisionDetection::check_collision(bbox, observer_collider))
+            filter = _filter_orange;
+        else
+            filter = _filter_blue;
+
+        _program.set_uniform("color_filter", filter);
         _program.set_uniform("model", bounding_box_transformation_matrix(bbox));
         glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
     }
