@@ -12,8 +12,7 @@ Camera::Camera(int view_width, int view_height, const glm::vec3& position)
     _field_of_view = glm::radians(45.0f);
     _aspect_ratio = (float)view_width / (float)view_height;
     _camera_world_pos = position;
-    _view_pitch = 0;
-    _view_yaw = 0;
+    _camera_direction = {0, 0, 0};
 }
 
 glm::mat4 Camera::vp_matrix() const
@@ -33,6 +32,9 @@ glm::mat4 Camera::vp_matrix() const
 
 void Camera::on_mouse_movement(double xpos, double ypos)
 {
+    if (_animation_frame != -1)
+        return;
+
     if (!_mouse_captured)
     {
         _mouse_captured = true;
@@ -46,18 +48,25 @@ void Camera::on_mouse_movement(double xpos, double ypos)
     _last_x = xpos;
     _last_y = ypos;
 
-    _view_yaw += offset_x * MOUSE_SENSITIVITY;
-    _view_pitch += offset_y * MOUSE_SENSITIVITY;
-    _view_pitch = std::clamp(_view_pitch, -89.0f, 89.0f);
+    float pitch = glm::asin(_camera_direction.y);
+    float yaw = glm::atan(_camera_direction.z, _camera_direction.x);
 
-    _camera_direction.x = cos(glm::radians(_view_yaw)) * cos(glm::radians(_view_pitch));
-    _camera_direction.y = sin(glm::radians(_view_pitch));
-    _camera_direction.z = sin(glm::radians(_view_yaw)) * cos(glm::radians(_view_pitch));
+    pitch += glm::radians(offset_y * MOUSE_SENSITIVITY);
+    pitch = glm::clamp(pitch, glm::radians(-89.0f), glm::radians(89.0f));
+
+    yaw += glm::radians(offset_x * MOUSE_SENSITIVITY);
+
+    _camera_direction.x = cos(pitch) * cos(yaw);
+    _camera_direction.y = sin(pitch);
+    _camera_direction.z = cos(pitch) * sin(yaw);
     _camera_direction = glm::normalize(_camera_direction);
 }
 
 glm::vec3 Camera::update_position(glm::vec3 direction)
 {
+    if (_animation_frame != -1)
+        return glm::vec3(0.0f);
+
     glm::vec3 horiz_axis = glm::normalize(glm::cross(_camera_direction, CAMERA_UP));
     direction *= MOVEMENT_SPEED;
 
@@ -67,4 +76,23 @@ glm::vec3 Camera::update_position(glm::vec3 direction)
 
     _camera_world_pos += delta;
     return delta;
+}
+
+bool Camera::animate_position(
+    const std::vector<AnimationFrame>& frames, const std::vector<AnimationFrame>& frames_direction)
+{
+    if (++_animation_frame >= frames.size())
+    {
+        _animation_frame = -1;
+        return false;
+    }
+
+    auto& pos = frames[_animation_frame].transformation[3];
+    _camera_world_pos = glm::vec3(pos.x, pos.y, pos.z);
+
+    auto& dir_pos = frames_direction[_animation_frame].transformation[3];
+    glm::vec3 dir_pos3 = glm::vec3(dir_pos.x, dir_pos.y, dir_pos.z);
+    _camera_direction = glm::normalize(dir_pos3 - _camera_world_pos);
+
+    return true;
 }

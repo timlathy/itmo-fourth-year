@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <chrono>
 #include <iostream>
 #include <memory>
 
@@ -119,19 +120,41 @@ int main()
     OBBCollisionDetection obbcd(BOUNDING_BOXES, NUM_BOUNDING_BOXES, "BB Observer");
     OBBRenderer obb_renderer;
 
-    int handle_k = 0;
-    int handle_k_scaler = 0;
+    bool c = true;
+
+    const uint64_t t_per_frame = 1000 / 60; // animation is intended to be run at 60fps
+    uint64_t t_accumulated = 0;
+    uint64_t t_frame_start =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
 
     while (!glfwWindowShouldClose(window))
     {
-        for (auto& m : scene.models())
+        const uint64_t current_time =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count();
+        t_accumulated += current_time - t_frame_start;
+        t_frame_start = current_time;
+
+        // Update logic (animations), runs at no more than 60fps
+        while (t_accumulated > t_per_frame)
         {
-            if (m.name() == "Door")
-                m.play_animation(scene.animation_keys("Door|D Door"));
-            else if (m.name() == "Handles")
-                m.play_animation(scene.animation_keys("Handles|H Door"));
-            else if (m.name() == "Handle Levers")
-                m.play_animation(scene.animation_keys("Handle Levers|HL Door"));
+            t_accumulated -= t_per_frame;
+            if (c)
+            {
+                for (auto& m : scene.models())
+                {
+                    if (m.name() == "Door")
+                        m.play_animation(scene.animation_keys("Door|D Door"));
+                    else if (m.name() == "Handles")
+                        m.play_animation(scene.animation_keys("Handles|H Door"));
+                    else if (m.name() == "Handle Levers")
+                        m.play_animation(scene.animation_keys("Handle Levers|HL Door"));
+                }
+
+                c = camera->animate_position(
+                    scene.animation_keys("Camera|C Door"), scene.animation_keys("Camera Direction|CD Door"));
+            }
         }
 
         shadow_maps.draw(scene);

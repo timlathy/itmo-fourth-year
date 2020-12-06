@@ -92,7 +92,6 @@ class Model
         int frame = _animation_frame ? _animation_frame->first : -1;
         if (++frame >= frames.size())
         {
-            _animation_frame = {};
             return false;
         }
         _animation_frame = {frame, frames[frame]};
