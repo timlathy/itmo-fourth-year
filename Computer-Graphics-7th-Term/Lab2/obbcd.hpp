@@ -5,6 +5,7 @@
 
 #include <glm/glm.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -21,14 +22,19 @@ class OBBCollisionDetection
     OrientedBoundingBox _observer_bbox;
 
   public:
-    OBBCollisionDetection(const OrientedBoundingBox* bboxes, size_t num_bboxes, std::string observer_box_name);
+    OBBCollisionDetection(const OrientedBoundingBox* bboxes, size_t num_bboxes, OrientedBoundingBox observer);
     const std::vector<OrientedBoundingBox>& bounding_boxes() const
     {
         return _bboxes;
     }
-    const OrientedBoundingBox& obserer_box() const
+    const OrientedBoundingBox& observer_box() const
     {
         return _observer_bbox;
+    }
+    void update_box(const OrientedBoundingBox& new_box)
+    {
+        std::replace_if(
+            _bboxes.begin(), _bboxes.end(), [name = new_box.name](const auto& b) { return b.name == name; }, new_box);
     }
     void update_observer_position(glm::vec3 delta)
     {

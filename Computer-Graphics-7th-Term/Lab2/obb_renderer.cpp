@@ -56,7 +56,7 @@ void OBBRenderer::draw(const OBBCollisionDetection& obbcd, const glm::mat4& came
         glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
     }
 
-    _program.set_uniform("model", bounding_box_transformation_matrix(obbcd.obserer_box()));
+    _program.set_uniform("model", bounding_box_transformation_matrix(obbcd.observer_box()));
     glDrawArrays(GL_TRIANGLES, 0, 12 * 3);
 
     glBindVertexArray(0);

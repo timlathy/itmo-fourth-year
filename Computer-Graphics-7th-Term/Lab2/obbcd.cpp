@@ -1,21 +1,11 @@
 #include "obbcd.hpp"
 
-#include <stdexcept>
-
 OBBCollisionDetection::OBBCollisionDetection(
-    const OrientedBoundingBox* bboxes, size_t num_bboxes, std::string observer_box_name)
-    : _bboxes(num_bboxes - 1)
+    const OrientedBoundingBox* bboxes, size_t num_bboxes, OrientedBoundingBox observer)
+    : _bboxes(num_bboxes), _observer_bbox(observer)
 {
     for (int i = 0; i < num_bboxes; ++i)
-    {
-        const OrientedBoundingBox bbox = bboxes[i];
-        if (bbox.name == observer_box_name)
-            _observer_bbox = bbox;
-        else
-            _bboxes.push_back(bbox);
-    }
-    if (_observer_bbox.name.empty())
-        throw std::runtime_error("Unable to find observer BB by name " + observer_box_name);
+        _bboxes.push_back(bboxes[i]);
 }
 
 bool separating_plane(
