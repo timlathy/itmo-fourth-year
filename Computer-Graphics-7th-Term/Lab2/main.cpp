@@ -1,8 +1,5 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <chrono>
 #include <iostream>
 
 #include "camera.hpp"
@@ -71,12 +68,6 @@ int main()
     OBBRenderer obb_renderer;
     HUDRenderer hud_renderer;
 
-    const uint64_t t_per_frame = 1000 / 60; // animation is intended to be run at 60fps
-    uint64_t t_accumulated = 0;
-    uint64_t t_frame_start =
-        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-            .count();
-
     bool obb_view = false;
     bool obb_view_button_pressed = false;
 
@@ -92,16 +83,9 @@ int main()
     window.setup_event_loop();
     while (!window.closed())
     {
-        const uint64_t current_time =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-                .count();
-        t_accumulated += current_time - t_frame_start;
-        t_frame_start = current_time;
-
-        // Update logic (animations), runs at no more than 60fps
-        while (t_accumulated > t_per_frame)
+        window.begin_frame();
+        while (window.animation_tick()) // runs at no more than 60 fps
         {
-            t_accumulated -= t_per_frame;
             if (door_opening)
             {
                 for (auto& m : scene.models())

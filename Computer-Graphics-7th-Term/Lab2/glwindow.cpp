@@ -1,5 +1,6 @@
 #include "glwindow.hpp"
 
+#include <chrono>
 #include <stdexcept>
 
 GlWindow::GlWindow(int width, int height)
@@ -26,12 +27,34 @@ GlWindow::GlWindow(int width, int height)
 void GlWindow::setup_event_loop()
 {
     glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    _frame_start_time =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+}
+
+void GlWindow::begin_frame()
+{
+    const uint64_t current_time =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+            .count();
+    _frame_time_acc += current_time - _frame_start_time;
+    _frame_start_time = current_time;
+}
+
+bool GlWindow::animation_tick()
+{
+    const uint64_t t_per_frame = 1000 / 60; // 60 fps
+    bool tick = _frame_time_acc > t_per_frame;
+    if (tick)
+        _frame_time_acc -= t_per_frame;
+    return tick;
 }
 
 void GlWindow::submit_frame()
 {
-    glfwSwapBuffers(_window);
-    glfwPollEvents();
     if (key_pressed(GLFW_KEY_ESCAPE))
         glfwSetWindowShouldClose(_window, GL_TRUE);
+
+    glfwSwapBuffers(_window);
+    glfwPollEvents();
 }
