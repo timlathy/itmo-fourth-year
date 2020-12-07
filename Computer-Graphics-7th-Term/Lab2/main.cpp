@@ -7,6 +7,7 @@
 
 #include "camera.hpp"
 #include "glprogram.hpp"
+#include "glwindow.hpp"
 #include "hud_renderer.hpp"
 #include "obb_renderer.hpp"
 #include "obbcd.hpp"
@@ -19,26 +20,7 @@ const int height = 1200;
 
 int main()
 {
-    if (glfwInit() != GLFW_TRUE)
-        return -1;
-
-    // Use OpenGL 4.5 (forward compatibility removes deprecated functionality)
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-    GLFWwindow* window = glfwCreateWindow(width, height, "Computer Graphics Lab 2", nullptr, nullptr);
-    glfwMakeContextCurrent(window);
-
-    glewExperimental = GL_TRUE; // use GL 3.2+ core context
-    if (auto err{glewInit()}; err != GLEW_OK)
-    {
-        std::cerr << "glewInit() error: " << glewGetErrorString(err) << std::endl;
-        return -1;
-    }
+    GlWindow window(width, height);
 
     TextureLoader tex_loader("../data");
     Scene scene("../data/scene4.fbx", tex_loader);
@@ -85,10 +67,6 @@ int main()
     const auto& shadow_tex_vps = shadow_maps.shadow_tex_vp_matrices();
     program.set_uniform_array("shadow_tex_vps", shadow_tex_vps.data(), shadow_tex_vps.size());
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    glEnable(GL_DEPTH_TEST);
-
     OBBCollisionDetection obbcd(BOUNDING_BOXES, INTERACTION_BOUNDING_BOXES, BB_OBSERVER);
     OBBRenderer obb_renderer;
     HUDRenderer hud_renderer;
@@ -110,7 +88,9 @@ int main()
 
     glm::vec3 mac_screen_light(0.8f);
 
-    while (!glfwWindowShouldClose(window))
+    glEnable(GL_DEPTH_TEST);
+    window.setup_event_loop();
+    while (!window.closed())
     {
         const uint64_t current_time =
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
@@ -223,7 +203,7 @@ int main()
             if (!door_opened && !door_opening && interaction->name == "BB Interaction Door")
             {
                 hud_renderer.draw(tex_loader.load_texture("tex-hud-door-open.png"));
-                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+                if (window.key_pressed(GLFW_KEY_E))
                     door_opening = true;
             }
             if (mac_power_cycle_frame == -1 && interaction->name == "BB Interaction Mac")
@@ -236,32 +216,30 @@ int main()
                 {
                     hud_renderer.draw(tex_loader.load_texture("tex-hud-mac-turn-on.png"));
                 }
-                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+                if (window.key_pressed(GLFW_KEY_E))
                     mac_power_cycle_frame = 0;
             }
         }
-        auto obb_view_key = glfwGetKey(window, GLFW_KEY_F);
-        if (!obb_view_button_pressed && obb_view_key == GLFW_PRESS)
+        if (!obb_view_button_pressed && window.key_pressed(GLFW_KEY_F))
         {
             obb_view_button_pressed = true;
             obb_view = !obb_view;
         }
-        if (obb_view_button_pressed && obb_view_key == GLFW_RELEASE)
+        if (obb_view_button_pressed && !window.key_pressed(GLFW_KEY_F))
         {
             obb_view_button_pressed = false;
         }
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        window.submit_frame();
 
         glm::vec3 movement{0, 0, 0};
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        if (window.key_pressed(GLFW_KEY_W))
             movement += CAMERA_FWD;
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        if (window.key_pressed(GLFW_KEY_S))
             movement -= CAMERA_FWD;
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        if (window.key_pressed(GLFW_KEY_D))
             movement += CAMERA_RIGHT;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        if (window.key_pressed(GLFW_KEY_A))
             movement -= CAMERA_RIGHT;
         if (glm::length(movement) > 0.0f)
         {
@@ -274,12 +252,7 @@ int main()
         }
 
         double mouse_x, mouse_y;
-        glfwGetCursorPos(window, &mouse_x, &mouse_y);
+        window.cursor_position(&mouse_x, &mouse_y);
         camera.on_mouse_movement(mouse_x, mouse_y);
-
-        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-            glfwSetWindowShouldClose(window, GL_TRUE);
     }
-
-    glfwTerminate();
 }

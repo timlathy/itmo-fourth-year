@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_GLIBCXX_DEBUG")
 
 add_executable(cglab2 main.cpp
+  glwindow.cpp
   glprogram.cpp
   camera.cpp
   scene.cpp
