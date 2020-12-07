@@ -62,37 +62,38 @@ GlProgram::GlProgram(std::vector<std::pair<std::string, GLenum>> shader_paths)
 void GlProgram::set_uniform(const char* name, const glm::vec3& value) const
 {
     const GLint location = glGetUniformLocation(_program, name);
-    glUniform3fv(location, 1, glm::value_ptr(value));
+    glProgramUniform3fv(_program, location, 1, glm::value_ptr(value));
 }
 
 void GlProgram::set_uniform(const char* name, const glm::mat4& value) const
 {
     const GLint location = glGetUniformLocation(_program, name);
-    glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
+    glProgramUniformMatrix4fv(_program, location, 1, GL_FALSE, glm::value_ptr(value));
 }
 
 void GlProgram::set_uniform(const char* name, GLint value) const
 {
     const GLint location = glGetUniformLocation(_program, name);
-    glUniform1i(location, value);
+    glProgramUniform1i(_program, location, value);
 }
 
 void GlProgram::set_uniform_array(const char* name, const glm::mat4* values, size_t count) const
 {
-    glUniformMatrix4fv(glGetUniformLocation(_program, name), count, GL_FALSE, glm::value_ptr(values[0]));
+    glProgramUniformMatrix4fv(
+        _program, glGetUniformLocation(_program, name), count, GL_FALSE, glm::value_ptr(values[0]));
 }
 
 void GlProgram::set_uniform_array(const char* name, const glm::vec3* values, size_t count) const
 {
-    glUniform3fv(glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
+    glProgramUniform3fv(_program, glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
 }
 
 void GlProgram::set_uniform_array(const char* name, const glm::vec2* values, size_t count) const
 {
-    glUniform2fv(glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
+    glProgramUniform2fv(_program, glGetUniformLocation(_program, name), count, glm::value_ptr(values[0]));
 }
 
 void GlProgram::set_uniform_array(const char* name, const GLint* values, size_t count) const
 {
-    glUniform1iv(glGetUniformLocation(_program, name), count, values);
+    glProgramUniform1iv(_program, glGetUniformLocation(_program, name), count, values);
 }

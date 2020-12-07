@@ -41,7 +41,6 @@ int main()
     const glm::vec3 spotlight_attenuation[2] = {
         glm::vec3(0.0f), glm::vec3(1.0f /* constant */, 0.01f /* linear */, 0.005f /* quadratic */)};
 
-    program.use();
     program.set_uniform_array("light_position", lights, 2);
     program.set_uniform_array("light_ambient_color", light_ambient_colors, 2);
     program.set_uniform_array("light_diffuse_color", light_diffuse_colors, 2);
