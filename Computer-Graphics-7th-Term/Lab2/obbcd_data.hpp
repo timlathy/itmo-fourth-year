@@ -12,11 +12,19 @@ static const OrientedBoundingBox BB_DOOR_OPEN = {
 
 static const OrientedBoundingBox BB_OBSERVER = {
     "BB Observer",
-    glm::vec3(-11.879799842834473, 6.5011820793151855, -7.949069976806641),
+    glm::vec3(-0.8912374973297119, 6.501182556152344, -5.087483882904053),
     glm::vec3(1.0, -1.0410971071905806e-06, 1.0410971071905806e-06),
     glm::vec3(1.0410982440589578e-06, 1.0, -1.0410959703222034e-06),
     glm::vec3(-1.0410959703222034e-06, 1.0410971071905806e-06, 1.0),
     glm::vec3(0.8999999761581421, 6.605499267578125, 0.8999999761581421)};
+
+static const OrientedBoundingBox BB_OBSERVER_DOOR_OPEN = {
+    "BB Observer",
+    glm::vec3(-2.564739942550659, 6.501180171966553, -9.050000190734863),
+    glm::vec3(1.0, 0.0, -0.0),
+    glm::vec3(-0.0, 1.0, 0.0),
+    glm::vec3(0.0, 0.0, 1.0),
+    glm::vec3(0.8999999761581421, 6.605500221252441, 0.8999999761581421)};
 
 static const std::vector<OrientedBoundingBox> INTERACTION_BOUNDING_BOXES = {
     {"BB Interaction Door", glm::vec3(-10.715160369873047, 1.0989630222320557, -7.030107498168945),

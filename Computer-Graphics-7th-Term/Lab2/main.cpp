@@ -71,7 +71,7 @@ int main()
     Scene scene("../data/scene3.fbx", tex_loader);
     scene.instantiate_meshes();
 
-    glm::vec3 camera_position = {-11.879799842834473, 15.09, -7.949069976806641}; // scene["Camera"].position();
+    glm::vec3 camera_position = {-0.8912374973297119, 15.0902, -5.087483882904053}; // scene["Camera"].position();
     camera = std::make_unique<Camera>(width, height, camera_position);
 
     GlProgram program({{"../shader/main.vert", GL_VERTEX_SHADER}, {"../shader/main.frag", GL_FRAGMENT_SHADER}});
@@ -161,6 +161,7 @@ int main()
                 {
                     door_opened = true;
                     obbcd.update_box(BB_DOOR_OPEN);
+                    obbcd.update_observer_position(BB_OBSERVER_DOOR_OPEN);
                 }
             }
         }

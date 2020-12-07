@@ -50,6 +50,10 @@ class OBBCollisionDetection
     {
         _observer_bbox.position += delta;
     }
+    void update_observer_position(const OrientedBoundingBox& new_pos)
+    {
+        _observer_bbox.position = new_pos.position;
+    }
     bool has_collisions() const;
     std::optional<OrientedBoundingBox> interaction_collision() const;
 
