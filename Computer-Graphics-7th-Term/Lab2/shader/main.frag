@@ -32,7 +32,7 @@ float shadow_light(sampler2DShadow shadow_map, vec4 shadow_pos, float incoming_l
         vec2(0.97484398, 0.75648379)
     );
 
-    float bias = clamp(0.005 * (1.0 - incoming_light_angle), 0, 0.01);
+    float bias = 0.005;
 
     float light = 0;
     float sample_contribution = 0.6 / 8;

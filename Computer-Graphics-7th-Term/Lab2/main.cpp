@@ -59,7 +59,7 @@ int main()
         glm::lookAt(scene["Mac Screen Light"].position(), scene["Mac Screen Light Direction"].position(), CAMERA_UP);
     const glm::mat4 spotlight_vp = spotlight_projection * spotlight_view;
 
-    ShadowMapRenderer shadow_maps({{lights[0], moonlight_vp, 2048}, {lights[1], spotlight_vp, 1024}});
+    ShadowMapRenderer shadow_maps({{lights[0], moonlight_vp, 2048}, {lights[1], spotlight_vp, 2048}});
     const auto& shadow_tex_vps = shadow_maps.shadow_tex_vp_matrices();
     program.set_uniform_array("shadow_tex_vps", shadow_tex_vps.data(), shadow_tex_vps.size());
 
