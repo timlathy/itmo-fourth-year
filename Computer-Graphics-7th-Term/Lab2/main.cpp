@@ -76,17 +76,17 @@ int main()
 
     GlProgram program({{"../shader/main.vert", GL_VERTEX_SHADER}, {"../shader/main.frag", GL_FRAGMENT_SHADER}});
 
-    glm::vec3 lights[2] = {scene["Moonlight"].position(), scene["Mac Screen Light"].position()};
-    glm::vec3 light_ambient_colors[2] = {glm::vec3(0.15f, 0.15f, 0.2f), glm::vec3(0.1f, 0.1f, 0.1f)};
-    glm::vec3 light_diffuse_colors[2] = {glm::vec3(0.8f, 0.8f, 0.85f), glm::vec3(1.0f, 1.0f, 1.0)};
-    glm::vec3 spotlight_direction[2] = {
+    const glm::vec3 lights[2] = {scene["Moonlight"].position(), scene["Mac Screen Light"].position()};
+    const glm::vec3 light_ambient_colors[2] = {glm::vec3(0.15f, 0.15f, 0.2f), glm::vec3(0.1f, 0.1f, 0.1f)};
+    const glm::vec3 light_diffuse_colors[2] = {glm::vec3(0.8f, 0.8f, 0.85f), glm::vec3(1.0f, 1.0f, 1.0f)};
+    const glm::vec3 spotlight_direction[2] = {
         glm::vec3(0.0f, 0.0f, 0.0f), glm::normalize(-(
                                          scene["Mac Screen Light"].position() -
                                          scene["Mac Screen Light Direction"].position()))}; //::vec3(1.0f, 0.0f, 0.0f)};
-    glm::vec2 spotlight_cutoff_cos[2] = {
+    const glm::vec2 spotlight_cutoff_cos[2] = {
         glm::vec2(0.0f),
         glm::vec2(glm::cos(glm::radians(85.0f)) /* outer */, glm::cos(glm::radians(12.0f)) /* inner */)};
-    glm::vec3 spotlight_attenuation[2] = {
+    const glm::vec3 spotlight_attenuation[2] = {
         glm::vec3(0.0f), glm::vec3(1.0f /* constant */, 0.01f /* linear */, 0.01f /* quadratic */)};
 
     program.use();
@@ -131,6 +131,11 @@ int main()
     bool door_opening = false;
     bool door_opened = false;
 
+    bool mac_on = true;
+    int mac_power_cycle_frame = -1;
+
+    glm::vec3 mac_screen_light(0.8f);
+
     while (!glfwWindowShouldClose(window))
     {
         const uint64_t current_time =
@@ -162,6 +167,33 @@ int main()
                     door_opened = true;
                     obbcd.update_box(BB_DOOR_OPEN);
                     obbcd.update_observer_position(BB_OBSERVER_DOOR_OPEN);
+                }
+            }
+            if (mac_power_cycle_frame != -1)
+            {
+                const float step = 1.0f / 60.0f;
+                const float on_screen_light = 0.8f;
+                const float off_screen_light = 0.001f; // see the fragment shader
+
+                float t = step * mac_power_cycle_frame;
+
+                bool turning_off = mac_on;
+                float t_light = turning_off ? (1.0f - t) : t;
+                float t_no_light = 1.0f - t_light;
+
+                float color = on_screen_light * t_light + off_screen_light * t_no_light;
+                mac_screen_light = glm::vec3(color);
+
+                glm::vec3 ambient = light_ambient_colors[1] * t_light;
+                glm::vec3 diffuse = light_diffuse_colors[1] * t_light;
+
+                program.set_uniform("light_ambient_color[1]", ambient);
+                program.set_uniform("light_diffuse_color[1]", diffuse);
+
+                if (mac_power_cycle_frame++ == 60)
+                {
+                    mac_on = !mac_on;
+                    mac_power_cycle_frame = -1;
                 }
             }
         }
@@ -201,7 +233,7 @@ int main()
 
                 if (m.name() == "Mac Screen")
                 {
-                    program.set_uniform("object_light_override", glm::vec3(0.8f));
+                    program.set_uniform("object_light_override", mac_screen_light);
                     m.draw();
                     program.set_uniform("object_light_override", glm::vec3(0.0f));
                 }
@@ -212,14 +244,26 @@ int main()
             }
         }
 
-        if (!door_opened && !door_opening)
+        if (auto interaction{obbcd.interaction_collision()})
         {
-            auto interaction = obbcd.interaction_collision();
-            if (interaction && interaction->name == "BB Interaction Door")
+            if (!door_opened && !door_opening && interaction->name == "BB Interaction Door")
             {
-                hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-door.png"));
+                hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-door-open.png"));
                 if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
                     door_opening = true;
+            }
+            if (mac_power_cycle_frame == -1 && interaction->name == "BB Interaction Mac")
+            {
+                if (mac_on)
+                {
+                    hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-mac-turn-off.png"));
+                }
+                else
+                {
+                    hud_renderer.draw(tex_loader.load_texture("../data/tex-hud-mac-turn-on.png"));
+                }
+                if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+                    mac_power_cycle_frame = 0;
             }
         }
 

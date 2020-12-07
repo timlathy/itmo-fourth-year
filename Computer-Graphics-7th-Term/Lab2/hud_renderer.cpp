@@ -43,9 +43,9 @@ void HUDRenderer::draw(GLint texture)
 {
     auto proj = glm::ortho(0.0f, 1.0f, 0.0f, 1.0f);
 
-    glm::mat4 model = glm::scale(glm::vec3(1, 1.0f / 8.0f, 1)); /* hardcoded texture aspect ratio */
-    model = glm::scale(model, glm::vec3(0.25f));
-    model = glm::translate(model, glm::vec3(1.5f, 1.0f, 0));
+    glm::mat4 model = glm::scale(glm::vec3(1, 1.0f / 16.0f, 1)); /* hardcoded texture aspect ratio */
+    model = glm::scale(model, glm::vec3(0.5f));
+    model = glm::translate(model, glm::vec3(0.5f, 1.0f, 0));
 
     _program.use();
     _program.set_uniform("mvp", proj * model);
