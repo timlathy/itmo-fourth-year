@@ -5,7 +5,7 @@
 #include <algorithm>
 
 const float MOUSE_SENSITIVITY = 0.05f;
-const float MOVEMENT_SPEED = 0.1f;
+const float MOVEMENT_SPEED = 0.16f;
 
 Camera::Camera(int view_width, int view_height, const glm::vec3& position)
 {
@@ -17,10 +17,14 @@ Camera::Camera(int view_width, int view_height, const glm::vec3& position)
 
 glm::mat4 Camera::vp_matrix() const
 {
+    glm::vec3 camera_pos = _camera_world_pos;
+    if (_animation_frame == -1)
+        camera_pos.y += 0.12f * sinf(_t_head_movement);
+
     glm::mat4 view = glm::lookAt(
-        _camera_world_pos,                     // camera position in world coordinates
-        _camera_world_pos + _camera_direction, // camera is centered at this point
-        CAMERA_UP                              // vertical axis
+        camera_pos,                     // camera position in world coordinates
+        camera_pos + _camera_direction, // camera is centered at this point
+        CAMERA_UP                       // vertical axis
     );
     glm::mat4 projection = glm::perspective(
         _field_of_view, _aspect_ratio,
@@ -62,7 +66,7 @@ void Camera::on_mouse_movement(double xpos, double ypos)
     _camera_direction = glm::normalize(_camera_direction);
 }
 
-glm::vec3 Camera::update_position(glm::vec3 direction)
+glm::vec3 Camera::movement_delta(glm::vec3 direction) const
 {
     if (_animation_frame != -1)
         return glm::vec3(0.0f);
@@ -74,8 +78,13 @@ glm::vec3 Camera::update_position(glm::vec3 direction)
     delta.x = (direction.z * _camera_direction.x) + (direction.x * horiz_axis.x);
     delta.z = (direction.z * _camera_direction.z) + (direction.x * horiz_axis.z);
 
-    _camera_world_pos += delta;
     return delta;
+}
+
+void Camera::update_position(glm::vec3 delta)
+{
+    _t_head_movement += 0.16f;
+    _camera_world_pos += delta;
 }
 
 bool Camera::animate_position(

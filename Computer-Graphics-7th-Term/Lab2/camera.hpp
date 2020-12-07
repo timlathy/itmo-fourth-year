@@ -19,12 +19,15 @@ class Camera
     float _last_x, _last_y;
     bool _mouse_captured{false};
     int _animation_frame{-1};
+    float _t_head_movement{0.0f};
 
   public:
     Camera(int view_width, int view_height, const glm::vec3& position);
     glm::mat4 vp_matrix() const;
     void on_mouse_movement(double xpos, double ypos);
-    glm::vec3 update_position(glm::vec3 direction);
+
+    glm::vec3 movement_delta(glm::vec3 direction) const;
+    void update_position(glm::vec3 delta);
 
     bool animate_position(
         const std::vector<AnimationFrame>& frames, const std::vector<AnimationFrame>& frames_direction);

@@ -281,13 +281,12 @@ int main()
             movement -= CAMERA_RIGHT;
         if (glm::length(movement) > 0.0f)
         {
-            glm::vec3 delta = camera->update_position(movement);
+            glm::vec3 delta = camera->movement_delta(movement);
             obbcd.update_observer_position(delta);
             if (obbcd.has_collisions())
-            {
-                glm::vec3 rev_delta = camera->update_position(-movement);
-                obbcd.update_observer_position(rev_delta);
-            }
+                obbcd.update_observer_position(-delta);
+            else
+                camera->update_position(delta);
         }
     }
 
