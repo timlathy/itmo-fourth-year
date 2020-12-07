@@ -20,9 +20,29 @@ out layout (location = 0) vec4 out_color;
 
 float shadow_light(sampler2DShadow shadow_map, vec4 shadow_pos, float incoming_light_angle)
 {
+    float sample_bias_spread = 1.0 / 600.0;
+    vec2 sample_bias[8] = vec2[](
+        vec2(-0.94201624, -0.39906216),
+        vec2(0.94558609, -0.76890725),
+        vec2(-0.094184101, -0.92938870),
+        vec2(0.34495938, 0.29387760),
+        vec2(-0.91588581, 0.45771432),
+        vec2(-0.81544232, -0.87912464),
+        vec2(-0.38277543, 0.27676845),
+        vec2(0.97484398, 0.75648379)
+    );
+
     float bias = clamp(0.005 * (1.0 - incoming_light_angle), 0, 0.01);
-    vec3 coord = shadow_pos.xyz / shadow_pos.w;
-    return 0.4 + (0.6 * texture(shadow_map, vec3(coord.xy, coord.z - bias)));
+
+    float light = 0;
+    float sample_contribution = 0.6 / 8;
+    for (int i = 0; i < 8; ++i)
+    {
+        vec3 coord = vec3(shadow_pos.xy + sample_bias[i] * sample_bias_spread, shadow_pos.z - bias) / shadow_pos.w;
+        float s = texture(shadow_map, coord);
+        light += sample_contribution * s;
+    }
+    return 0.4 + light;
 }
 
 float light_source_intensity(int i, vec3 light_direction)
