@@ -3,6 +3,7 @@
 #include <spng.h>
 
 #include <stdexcept>
+#include <cmath>
 #include <vector>
 
 GLuint TextureLoader::load_texture(std::string path)
@@ -31,15 +32,18 @@ GLuint TextureLoader::load_texture(std::string path)
         throw std::runtime_error(path + ": spng_decode_image failed, " + std::string(spng_strerror(error)));
 
     GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, header.width, header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
-    glGenerateMipmap(GL_TEXTURE_2D);
+    glCreateTextures(GL_TEXTURE_2D, 1, &texture);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    auto mipmap_levels = std::max(1, (int)std::floor(std::log2(std::max(header.width, header.height))));
+
+    glTextureStorage2D(texture, mipmap_levels, GL_RGBA8, header.width, header.height);
+    glTextureSubImage2D(texture, 0, 0, 0, header.width,header.height, GL_RGBA, GL_UNSIGNED_BYTE, tex_data.data());
+    glGenerateTextureMipmap(texture);
 
     spng_ctx_free(ctx);
 

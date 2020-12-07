@@ -52,7 +52,7 @@ void HUDRenderer::draw(GLint texture)
 
     glBindVertexArray(_vao);
 
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTextureUnit(0, texture);
 
     glDisable(GL_DEPTH_TEST);
     glDepthMask(0);

@@ -156,8 +156,7 @@ int main()
             for (int i = 0; i < num_shadow_maps; ++i)
             {
                 shadow_samplers[i] = 1 + i; // GL_TEXTURE1 + i
-                glActiveTexture(GL_TEXTURE0 + shadow_samplers[i]);
-                glBindTexture(GL_TEXTURE_2D, shadow_maps.textures()[i]);
+                glBindTextureUnit(1 + i, shadow_maps.textures()[i]);
             }
             program.set_uniform_array("shadow_maps", shadow_samplers, num_shadow_maps);
 

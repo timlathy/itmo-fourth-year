@@ -8,22 +8,21 @@ ShadowMapRenderer::ShadowMapRenderer(std::vector<LightSource> light_sources)
       _program({{"../shader/shadow_map.vert", GL_VERTEX_SHADER}, {"../shader/shadow_map.frag", GL_FRAGMENT_SHADER}})
 {
     glGenFramebuffers(1, &_fbo);
-    glGenTextures(_depth_textures.size(), _depth_textures.data());
+
+    glCreateTextures(GL_TEXTURE_2D, _depth_textures.size(), _depth_textures.data());
     for (int i = 0; i < light_sources.size(); ++i)
     {
         const auto& source = light_sources[i];
+        const GLint texture = _depth_textures[i];
 
-        glBindTexture(GL_TEXTURE_2D, _depth_textures[i]);
+        glTextureStorage2D(texture, 1, GL_DEPTH_COMPONENT16, source.depth_map_resolution, source.depth_map_resolution);
 
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT16, source.depth_map_resolution, source.depth_map_resolution, 0,
-            GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTextureParameteri(texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTextureParameteri(texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+        glTextureParameteri(texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
 
         _texture_resolution[i] = source.depth_map_resolution;
         _shadow_vp_matrices[i] = source.vp;
@@ -48,7 +47,7 @@ void ShadowMapRenderer::draw(const Scene& scene)
     {
         glViewport(0, 0, _texture_resolution[i], _texture_resolution[i]);
 
-        glBindTexture(GL_TEXTURE_2D, _depth_textures[i]);
+        glBindTextureUnit(0, _depth_textures[i]);
         glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _depth_textures[i], 0);
         glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_NONE); // no color buffer

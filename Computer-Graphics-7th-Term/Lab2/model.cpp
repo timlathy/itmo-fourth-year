@@ -39,10 +39,7 @@ void Model::draw() const
         return;
 
     if (_texture)
-    {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, *_texture);
-    }
+        glBindTextureUnit(0, *_texture);
 
     glBindVertexArray(_vao);
     glDrawElements(GL_TRIANGLES, _indices.size(), GL_UNSIGNED_INT, 0);
