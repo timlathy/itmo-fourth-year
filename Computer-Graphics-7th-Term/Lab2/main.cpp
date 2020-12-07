@@ -68,7 +68,7 @@ int main()
     }
 
     TextureLoader tex_loader("../data");
-    Scene scene("../data/scene2.fbx", tex_loader);
+    Scene scene("../data/scene3.fbx", tex_loader);
     scene.instantiate_meshes();
 
     glm::vec3 camera_position = {-11.879799842834473, 15.09, -7.949069976806641}; // scene["Camera"].position();
@@ -98,7 +98,7 @@ int main()
     program.set_uniform_array("spotlight_cutoff_cos", spotlight_cutoff_cos, 2);
 
     const glm::mat4 moonlight_projection =
-        glm::ortho(-16.5f, 32.0f, -11.0f, 34.5f, 1.0f /* near plane */, 100.0f /* far plane */);
+        glm::ortho(-10.0f, 14.0f, -9.0f, 15.0f, 1.0f /* near plane */, 100.0f /* far plane */);
     const glm::mat4 moonlight_view = glm::lookAt(scene["Moonlight"].position(), glm::vec3(0.0f), CAMERA_UP);
     const glm::mat4 moonlight_vp = moonlight_projection * moonlight_view;
 
@@ -108,7 +108,7 @@ int main()
         glm::lookAt(scene["Mac Screen Light"].position(), scene["Mac Screen Light Direction"].position(), CAMERA_UP);
     const glm::mat4 spotlight_vp = spotlight_projection * spotlight_view;
 
-    ShadowMapRenderer shadow_maps({{lights[0], moonlight_vp}, {lights[1], spotlight_vp}});
+    ShadowMapRenderer shadow_maps({{lights[0], moonlight_vp, 2048}, {lights[1], spotlight_vp, 1024}});
     const auto& shadow_tex_vps = shadow_maps.shadow_tex_vp_matrices();
     program.set_uniform_array("shadow_tex_vps", shadow_tex_vps.data(), shadow_tex_vps.size());
 

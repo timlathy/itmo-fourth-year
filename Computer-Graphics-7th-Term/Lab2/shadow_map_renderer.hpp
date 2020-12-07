@@ -9,6 +9,7 @@ struct LightSource
 {
     glm::vec3 position;
     glm::mat4 vp;
+    int depth_map_resolution;
 };
 
 class ShadowMapRenderer
@@ -17,6 +18,7 @@ class ShadowMapRenderer
     GlProgram _program;
     GLuint _fbo;
     std::vector<GLuint> _depth_textures;
+    std::vector<int> _texture_resolution;
     std::vector<glm::mat4> _shadow_vp_matrices;
     std::vector<glm::mat4> _shadow_tex_vp_matrices;
 
