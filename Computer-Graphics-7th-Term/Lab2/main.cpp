@@ -20,7 +20,7 @@ int main()
     GlWindow window(width, height);
 
     TextureLoader tex_loader("../data");
-    Scene scene("../data/scene4.fbx", tex_loader);
+    Scene scene("../data/lains-room.fbx", tex_loader);
     scene.instantiate_meshes();
 
     glm::vec3 camera_position = {-0.8912374973297119, 15.0902, -5.087483882904053}; // scene["Camera"].position();
