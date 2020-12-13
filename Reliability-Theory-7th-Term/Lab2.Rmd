@@ -99,11 +99,11 @@ $$K_r = p_1 + p_2 + p_3 + p_4 + p_5 = 1$$
 
 $$
 \frac{d}{dt}P_1(t) = -5\lambda P_1(t) + \mu P_2(t),\\
-\frac{d}{dt}P_2(t) = -(4\lambda + \mu) P_2(t) + \mu P_3(t),\\
-\frac{d}{dt}P_3(t) = -(3\lambda + \mu) P_3(t) + \mu P_4(t),\\
-\frac{d}{dt}P_4(t) = -(2\lambda + \mu) P_4(t) + \mu P_5(t),\\
-\frac{d}{dt}P_5(t) = -(\lambda + \mu) P_5(t) + \mu P_6(t),\\
-\frac{d}{dt}P_6(t) = -\mu P_6(t)
+\frac{d}{dt}P_2(t) = -(4\lambda + \mu) P_2(t) + \mu P_3(t) + 5\lambda P_1(t),\\
+\frac{d}{dt}P_3(t) = -(3\lambda + \mu) P_3(t) + \mu P_4(t) + 4\lambda P_2(t),\\
+\frac{d}{dt}P_4(t) = -(2\lambda + \mu) P_4(t) + \mu P_5(t) + 3\lambda P_3(t),\\
+\frac{d}{dt}P_5(t) = -(\lambda + \mu) P_5(t) + \mu P_6(t) + 2\lambda P_4(t),\\
+\frac{d}{dt}P_6(t) = -\mu P_6(t) + \lambda P_5(t)
 $$
 
 ## Построение графика зависимости нестационарного коэффициента готовности от времени
