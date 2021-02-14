@@ -1,0 +1,113 @@
+---
+title: "Проектирование тонкопленочных гибридных интегральных микросхем"
+output:
+  word_document: default
+---
+
+```{r setup, include=F}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+
+cat_fine_approx_seq <- function(lbl_l, lbl_r, lbl_unit, fine_seq, approx_seq) {
+  cat("$$")
+  for (i in seq_along(fine_seq)) {
+    if (paste(fine_seq[[i]]) != paste(approx_seq[[i]])) {
+      cat(paste(lbl_l, i, lbl_r, fine_seq[[i]], " \\approx ", approx_seq[[i]], lbl_unit, sep=""))
+    }
+    else {
+      cat(paste(lbl_l, i, lbl_r, approx_seq[[i]], lbl_unit, sep=""))
+    }
+    if (i < length(fine_seq)) {
+      cat(",")
+    }
+  }
+  cat("$$")
+}
+
+```
+
+# Вариант 6 (1)
+
+## Исходные данные
+
+![Рисунок 1. Схема эмиттерного повторителя](HW1/Circuit.png)
+
+Параметры элементов:
+
+* $R1$: 10 кОм ±10% 0,01 Вт
+* $R2$: 39 кОм ±20% 0,003 Вт
+* $R3$: 20 кОм ±10% 0,01 Вт
+* $R4$: 15 кОм ±20% 0,005 Вт
+* $R5$: 3,6 кОм ±20% 0,05 Вт
+* $C1$: 1000 пФ
+* $C2$: 1100 пФ
+* $C3$: 6000 пФ
+
+## Проектирование ГИС
+
+### 1. Расчет размеров пленочных резисторов
+
+Опеределим оптимальное удельное поверхностное сопротивление:
+
+```{r, include=F}
+R_R <- c(10*10^3, 39*10^3, 20*10^3, 15*10^3, 3.6*10^3)
+R_W <- c(0.01, 0.003, 0.01, 0.005, 0.05)
+R_delta = c(10,20,10,20,20)
+R_rho_sq_fine <- round(sqrt(sum(R_R) / sum(1 / R_R)))
+R_rho_sq <- signif(R_rho_sq_fine, digits=1)
+```
+
+$$\rho_□ = \sqrt{\frac{\sum R}{\sum R^{-1}}} = `r R_rho_sq_fine` \text{Ом} \approx `r R_rho_sq` \text{Ом}$$
+
+Материал с ближайшим значением $\rho_□$, удовлетворяющий необходимому диапазону значений сопротивления — _Кермет К-50С_ с удельной мощностью рассеивания $W_0 = 2$ Вт/см^2.
+
+Определим ширину резисторов $b_w$, обеспечивающую необходимую мощность рассеивания:
+
+$$b_w = \sqrt{\frac{\rho_□ \cdot W}{R \cdot W_0}}$$
+
+(Значения округляются в большую сторону до шага сетки $H = 0.1$ мм)
+
+```{r, echo=F, results='asis'}
+R_W_0 = 2
+R_b_w_fine <- round(sqrt((R_rho_sq * R_W) / (R_R * R_W_0)), 3)
+R_b_w <- round(R_b_w_fine + 0.05, 1) # round up
+
+cat_fine_approx_seq("b_{w", "}=", "\\text{мм}", R_b_w_fine, R_b_w)
+```
+
+Определим ширину резисторов $b$ с поправкой на точность изготовления:
+
+```{r, echo=F, results='asis'}
+R_b_prec = ifelse(R_delta == 10, 0.3, 0.2)
+R_b <- pmax(R_b_w, R_b_prec)
+
+cat_fine_approx_seq("b_", "=", "\\text{мм}", R_b, R_b)
+```
+
+Определим длины резисторов:
+
+$$l = \frac{R}{\rho_□}\cdot b = k_ф \cdot b$$
+
+(Значения округляются до ближайшего, кратного шагу сетки $H = 0.1$ мм)
+
+```{r, echo=F, results='asis'}
+R_k_shape = R_R / R_rho_sq
+R_l_fine = R_k_shape * R_b
+R_l = round(R_l_fine, 1)
+
+cat_fine_approx_seq("k_{ф", "}=", "", R_k_shape, R_k_shape)
+cat_fine_approx_seq("l_", "=", "\\text{мм}", R_l_fine, R_l)
+```
+
+Оценим погрешность, вызванную округлением:
+
+$$\Delta R' = \frac{\|R - R'\|}{R}\cdot 100\%,\ R' = \frac{l\cdot\rho_□}{b}$$
+
+```{r, echo=F, results='asis'}
+R_R_real = (R_l*R_rho_sq) / R_b
+R_dR = round((abs(R_R - R_R_real) / R_R) * 100)
+
+cat_fine_approx_seq("\\Delta R'_", "=", "\\%", R_dR, R_dR)
+```
+
+Для каждого из резисторов погрешность удовлетворяет условию $\Delta R' \leq \Delta R$.
