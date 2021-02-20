@@ -37,6 +37,8 @@ md"""
 
 Ключ: $(@bind uikey TextField())
 
+Удалить пробелы и знаки пунктуации: $(@bind uinopunct CheckBox(default=true))
+
 Файл: $(@bind uifile FilePicker())
 """
 
@@ -49,10 +51,10 @@ begin
 		numcols = length(keychars)
 		# Text is arranged into `numcols` columns. If the number of characters
 		# in the text is not divisible by the number of columns, we need to
-		# insert padding symbols (we chose spaces).
+		# insert padding symbols (the first symbol in the text in this case).
 		modchars = length(textchars) % numcols
 		if modchars > 0
-			padding = repeat([' '], numcols - modchars)
+			padding = repeat([textchars[1]], numcols - modchars)
 			append!(textchars, padding)
 		end
 
@@ -103,6 +105,10 @@ begin
 	else
 		input = read(IOBuffer(uifile["data"]), String)
 		f = uimode == "Зашифровать" ? encrypt : decrypt
+		
+		if uinopunct
+			input = replace(input, r"[[:punct:][:space:]]" => "")
+		end
 		
 		try
 			res = f(input, uikey)
