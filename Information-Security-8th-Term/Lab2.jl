@@ -4,6 +4,15 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        el
+    end
+end
+
 # ╔═╡ 89ed4be4-73ac-11eb-2008-b7556f5125d6
 begin
 	using Test, PlutoUI
@@ -115,6 +124,76 @@ md"""
 При дешифровании, _дешифрованный блок_ складывается по модулю 2 с предыдущим _зашифрованным блоком_ (IV при обработке первого блока). Таким образом, при неправильном указании IV будет утерян только первый блок данных.
 """
 
+# ╔═╡ 5af1430e-7929-11eb-2226-effab70fc003
+md"""
+## Интерфейс взаимодействия с программой шифрования
+
+Режим: $(@bind uimode Select(["Не выбран", "Зашифровать", "Расшифровать"]))
+
+Число итераций: $(@bind uiiters Select(["8", "16", "32", "64"], default="32"))
+
+Ключ (0x...): $(@bind uikey TextField())
+
+Вектор инициализации (0x...): $(@bind uiiv TextField())
+
+Файл: $(@bind uifile FilePicker())
+"""
+
+# ╔═╡ 8ef45376-7929-11eb-1730-21631472630d
+begin
+	if uimode == "Не выбран"
+		md"""
+		## Результат работы программы
+		Не выбран режим работы.
+		"""
+	elseif isnothing(tryparse(UInt128, uikey)) || isnothing(tryparse(UInt64, uiiv))
+		md"""
+		## Результат работы программы
+		Неверно введены ключ и вектор инициализации.
+		"""
+	elseif isempty(uifile["data"])
+		md"""
+		## Результат работы программы
+		Не выбран исходный файл.
+		"""
+	else
+		input = uifile["data"]
+		if length(input) % 8 != 0
+			padding = repeat([UInt8(0)], 8 - length(input) % 8)
+			input = [input; padding]
+		end
+		input = IOBuffer(input)
+		output = IOBuffer()
+		
+		config = CipherConfig(parse(UInt128, uikey), parse(UInt32, uiiters))
+		iv = parse(UInt64, uiiv)
+		
+		f = uimode == "Зашифровать" ? cbc_encrypt : cbc_decrypt
+		
+		try
+			f(config, iv, input, output)
+
+			res_button = DownloadButton(output.data, uifile["name"])
+
+			data_size = length(uifile["data"]) % 8 == 0 ?
+				"$(length(uifile["data"])) байт" :
+				"$(length(uifile["data"])) байта информации + $(8 - length(uifile["data"]) % 8) заполняющих байт"
+			
+			md"""
+			## Результат работы программы
+			Размер данных: $(data_size)
+
+			Результат: $(res_button)
+			"""
+		catch e
+			md"""
+			## Результат работы программы
+			Ошибка: $(e)
+			"""
+		end
+	end
+end
+
 # ╔═╡ 218c9b0e-7929-11eb-347a-e7ab91cc1e45
 md"""
 ## Тестирование алгоритма
@@ -143,7 +222,9 @@ with_terminal() do
 end
 
 # ╔═╡ Cell order:
-# ╠═d42c2810-73a2-11eb-2260-d3809a05056a
+# ╟─d42c2810-73a2-11eb-2260-d3809a05056a
+# ╟─5af1430e-7929-11eb-2226-effab70fc003
+# ╟─8ef45376-7929-11eb-1730-21631472630d
 # ╠═89ed4be4-73ac-11eb-2008-b7556f5125d6
-# ╠═218c9b0e-7929-11eb-347a-e7ab91cc1e45
+# ╟─218c9b0e-7929-11eb-347a-e7ab91cc1e45
 # ╠═07e9ecb0-73a7-11eb-2999-bb2422032477
