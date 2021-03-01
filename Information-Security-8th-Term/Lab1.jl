@@ -13,8 +13,22 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 4fa0562e-721d-11eb-3833-cd829ef088d0
-using Test, Logging, PlutoUI
+# ╔═╡ 17e5bb2a-72b0-11eb-24be-8b92195c12ec
+begin
+	using Test, Logging, PlutoUI
+	
+	md"""
+	## Интерфейс взаимодействия с программой шифрования
+
+	Режим: $(@bind uimode Select(["Не выбран", "Зашифровать", "Расшифровать"]))
+
+	Ключ: $(@bind uikey TextField())
+
+	Удалить пробелы и знаки пунктуации: $(@bind uinopunct CheckBox(default=true))
+
+	Файл: $(@bind uifile FilePicker())
+	"""
+end
 
 # ╔═╡ a7fa4342-78f9-11eb-0edf-e50450aab795
 begin
@@ -56,19 +70,6 @@ md"""
 ## Описание шифра
 
 В перестановочном шифре с ключевым словом символы исходного текста помещаются в матрицу с числом столбцов, равным длине ключа, затем столбцы переставляются в соответствии с алфавитным порядков символов в ключе, и полученная матрица считывается в зашифрованный текст по столбцам. Частоты встречаемости символов не изменяются, что может помочь отличить перестановочный шифр от подстановочного.
-"""
-
-# ╔═╡ 17e5bb2a-72b0-11eb-24be-8b92195c12ec
-md"""
-## Интерфейс взаимодействия с программой шифрования
-
-Режим: $(@bind uimode Select(["Не выбран", "Зашифровать", "Расшифровать"]))
-
-Ключ: $(@bind uikey TextField())
-
-Удалить пробелы и знаки пунктуации: $(@bind uinopunct CheckBox(default=true))
-
-Файл: $(@bind uifile FilePicker())
 """
 
 # ╔═╡ 1e0bb172-73a2-11eb-051e-5dd4c7e4a536
@@ -193,7 +194,7 @@ with_terminal() do
 end
 
 # ╔═╡ ebc693b4-78f9-11eb-23d9-0387a00e03b0
-function score_candidate(textmatrix::Array{Char, 2}, en_probs::Matrix{Float32})::Int
+function score_candidate(textmatrix::Matrix{Char}, en_probs::Matrix{Float32})::Int
 	sum::Float32 = 0
 	for i in 1:1:length(textmatrix)-1
 		c1::Char = uppercase(textmatrix[i])
@@ -212,21 +213,28 @@ end
 # ╔═╡ eab061a0-78fc-11eb-23b1-4f6ff35f46fa
 function bruteforce_top_n(ciphertext::String, bigram_probs::Matrix{Float32}, maxkeylen::Int, top_n::Int)
 	ciphertextchars::Array{Char,1} = collect(ciphertext)
-
+	
+	# Keep a list of `top_n` deciphered texts with the highest score
 	top_n_scores::Array{Int, 1} = []
 	top_n_candidates::Array{Tuple{String, Array{Int, 1}}} = []
 	
+	# Lock for accessing the list of candidates from multiple threads
 	top_n_lock = ReentrantLock()
 	
+	# Test each key length from 1 to `maxkeylen`
 	for keylen in 1:1:maxkeylen
 		if length(ciphertextchars) % keylen != 0
 			continue
 		end
 		
+		# Arrange the ciphertext into `keylen` columns in row-major order
 		T = permutedims(reshape(ciphertextchars, :, keylen))
 		
+		# Calculate the number of key permutations as the factorial of `keylen`
 		col_indexes = [1:1:keylen;]
 		numperms = factorial(keylen)
+		
+		# Try each permutation in parallel
 		Threads.@threads for p in 1:1:numperms
 			cols = nthperm(col_indexes, p)
 			candidate = T[cols, :]
@@ -278,16 +286,23 @@ begin
 	"""
 end
 
+# ╔═╡ 6105a348-7a55-11eb-3bd3-45b6fd5d096c
+md"""
+## Вывод
+
+В ходе выполнения работы был изучен перестановочный шифр с ключевым словом, реализованы алгоритмы шифрации и дешифрации текстового файла. Также рассмотрена процедура вскрытия шифра с использованием метода простого перебора.
+"""
+
 # ╔═╡ Cell order:
-# ╠═0a7cf952-73a1-11eb-3f5d-aff7400016c2
-# ╟─4fa0562e-721d-11eb-3833-cd829ef088d0
-# ╠═17e5bb2a-72b0-11eb-24be-8b92195c12ec
-# ╠═b13fe00c-7399-11eb-3f10-81af4e8318df
+# ╟─0a7cf952-73a1-11eb-3f5d-aff7400016c2
+# ╟─17e5bb2a-72b0-11eb-24be-8b92195c12ec
+# ╟─b13fe00c-7399-11eb-3f10-81af4e8318df
 # ╠═1e0bb172-73a2-11eb-051e-5dd4c7e4a536
 # ╟─43e0bd52-73a2-11eb-3248-2987c2a36299
 # ╠═fa76e7b2-721c-11eb-13b8-471a355ee345
-# ╠═a7fa4342-78f9-11eb-0edf-e50450aab795
+# ╟─a7fa4342-78f9-11eb-0edf-e50450aab795
 # ╠═9a2e69ec-78fb-11eb-10ba-f32d14361070
 # ╠═8477c296-791c-11eb-2945-c3cd9133f849
-# ╟─eab061a0-78fc-11eb-23b1-4f6ff35f46fa
-# ╟─ebc693b4-78f9-11eb-23d9-0387a00e03b0
+# ╠═eab061a0-78fc-11eb-23b1-4f6ff35f46fa
+# ╠═ebc693b4-78f9-11eb-23d9-0387a00e03b0
+# ╟─6105a348-7a55-11eb-3bd3-45b6fd5d096c

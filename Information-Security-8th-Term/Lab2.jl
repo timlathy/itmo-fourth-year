@@ -69,30 +69,6 @@ begin
 
 		UInt64(l) << 32 | r
 	end
-	
-	function cbc_encrypt(config::CipherConfig, iv::UInt64, i::IO, o::IO)
-		xor_with = iv
-
-		while !eof(i)
-			block = read(i, UInt64)
-			block ⊻= xor_with
-			enc_block = tea_encrypt(config, block)
-			write(o, enc_block)
-			xor_with = enc_block
-		end
-	end
-	
-	function cbc_decrypt(config::CipherConfig, iv::UInt64, i::IO, o::IO)
-		xor_with = iv
-
-		while !eof(i)
-			enc_block = read(i, UInt64)
-			block = tea_decrypt(config, enc_block)
-			block ⊻= xor_with
-			write(o, block)
-			xor_with = enc_block
-		end
-	end
 end
 
 # ╔═╡ d42c2810-73a2-11eb-2260-d3809a05056a
@@ -138,6 +114,33 @@ md"""
 
 Файл: $(@bind uifile FilePicker())
 """
+
+# ╔═╡ 05819c9e-7a59-11eb-2258-6df8c29b9b7c
+begin	
+	function cbc_encrypt(config::CipherConfig, iv::UInt64, i::IO, o::IO)
+		xor_with = iv
+
+		while !eof(i)
+			block = read(i, UInt64)
+			block ⊻= xor_with
+			enc_block = tea_encrypt(config, block)
+			write(o, enc_block)
+			xor_with = enc_block
+		end
+	end
+	
+	function cbc_decrypt(config::CipherConfig, iv::UInt64, i::IO, o::IO)
+		xor_with = iv
+
+		while !eof(i)
+			enc_block = read(i, UInt64)
+			block = tea_decrypt(config, enc_block)
+			block ⊻= xor_with
+			write(o, block)
+			xor_with = enc_block
+		end
+	end
+end
 
 # ╔═╡ 8ef45376-7929-11eb-1730-21631472630d
 begin
@@ -221,10 +224,19 @@ with_terminal() do
 	end
 end
 
+# ╔═╡ 89349308-7a58-11eb-3122-abc8156ebe8a
+md"""
+## Вывод
+
+В ходе выполнения работы была рассмотрена теоретическая основа блочного шифра TEA и режима шифрования CBC. Реализованы алгоритмы шифрования и дешифрования.
+"""
+
 # ╔═╡ Cell order:
 # ╟─d42c2810-73a2-11eb-2260-d3809a05056a
 # ╟─5af1430e-7929-11eb-2226-effab70fc003
 # ╟─8ef45376-7929-11eb-1730-21631472630d
 # ╠═89ed4be4-73ac-11eb-2008-b7556f5125d6
+# ╠═05819c9e-7a59-11eb-2258-6df8c29b9b7c
 # ╟─218c9b0e-7929-11eb-347a-e7ab91cc1e45
 # ╠═07e9ecb0-73a7-11eb-2999-bb2422032477
+# ╟─89349308-7a58-11eb-3122-abc8156ebe8a
