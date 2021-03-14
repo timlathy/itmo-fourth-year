@@ -6,7 +6,7 @@ using InteractiveUtils
 
 # ╔═╡ 70c2ff74-8239-11eb-381b-f316901ae8be
 begin
-	using PlutoUI, StringEncodings
+	using PlutoUI, StringEncodings, Printf
 	
 	task_n = 84032429242009
 	task_e = 2581907
@@ -85,7 +85,9 @@ with_terminal() do
 		c_::UInt64 = powermod(c, d, task_n)
 		chs = [(c_ >> 24) % UInt8, (c_ >> 16) % UInt8, (c_ >> 8) % UInt8, c_ % UInt8]
 		textchs = decode(chs, "WINDOWS-1251")
-		print("c = $(c),\tc' = c^d mod n = $(c_)\t= |$(textchs)|\n")
+		
+		@printf("c = %014d, c' = c^d (mod n) = %010d = %s = |%s|\n",
+			c, c_, join(map(n -> string(n, base=16), chs), " "), textchs)
 		append!(msg, textchs)
 	end
 	
