@@ -6,20 +6,15 @@ using InteractiveUtils
 
 # ╔═╡ ab91b218-84b8-11eb-310e-ab5f4f46cb10
 begin
+	# Describes a point on a curve
+	const Point = Tuple{Int64, Int64}
+	
 	struct Curve
 		# Describes an elliptic curve of form y^2 = x^3 + Ax + B (mod p)
 		a::Int64
 		b::Int64
-		modulo::Int64
+		p::Int64
 	end
-	
-	Base.show(io::IO, E::Curve) = begin
-		ax = E.a < 0 ? "- $(-E.a)x" : "+ $(E.a)x"
-		b = E.b < 0 ? "- $(-E.b)" : "+ $(E.b)"
-		print(io, "\$E_{$(E.modulo)}($(E.a), $(E.b)): y^2 = x^3 $(ax) $(b) \\pmod{$(E.modulo)}\$")
-	end
-	
-	const Point = Tuple{Int64, Int64}
 end
 
 # ╔═╡ 9cbf5c72-84a6-11eb-18db-239a76d2480c
@@ -32,6 +27,12 @@ begin
 	task_ks = [17,5,4,17,13,2,17,14,19]
 	
 	E = Curve(-1, 1, 751) # y^2 = x^3 - x + 1 \pmod{751}
+	
+	Base.show(io::IO, E::Curve) = begin
+		ax = E.a < 0 ? "- $(-E.a)x" : "+ $(E.a)x"
+		b = E.b < 0 ? "- $(-E.b)" : "+ $(E.b)"
+		print(io, "\$E_{$(E.p)}($(E.a), $(E.b)): y^2=x^3$(ax)$(b)\\pmod{$(E.p)}\$")
+	end
 	
 	md"""
 	# Лабораторная работа №5. Шифрование открытого текста на основе эллиптических кривых
@@ -117,40 +118,54 @@ begin
 end
 
 # ╔═╡ 79a5f132-84af-11eb-2d27-d984bb65bdc7
-# https://www.math.brown.edu/johsilve/Presentations/WyomingEllipticCurve.pdf
+# Computes P1 + P2, defined as the point at the intersection
+# of the curve E and the straight line defined by P1 and P2
 function elliptic_add(E::Curve, P1::Point, P2::Point)::Point
 	x1, y1 = P1
 	x2, y2 = P2
 	
+	# Find the slope of the line defined by P1 and P2
 	slope::Int64 = if P1 != P2
-		(y2 - y1) * invmod(x2 - x1, E.modulo)
+		# If P1 is not equal to P2, the slope is (y2-y1)/(x2-x1).
+		# In modulo arithmetic, division is defined as multiplication
+		# by the multiplicative inverse — such b that a*b (mod p) = 1
+		(y2 - y1) * invmod(x2 - x1, E.p)
 	else
-		(3*x1^2 + E.a) * invmod(2y1, E.modulo)
+		# If P1 == P2, we take take the tangent line to E at point P1
+		# (3x1^2 + A)/(2y1), division is again replaced with multiplication
+		(3*x1^2 + E.a) * invmod(2y1, E.p)
 	end
 	
-	x3 = mod(slope^2 - x1 - x2, E.modulo)
-	y3 = mod(slope*(x1 - x3) - y1, E.modulo)
+	# Find the point at the intersection between E and L=
+	x3 = mod(slope^2 - x1 - x2, E.p)
+	y3 = mod(slope*(x1 - x3) - y1, E.p)
 	
 	(x3, y3)
 end
 
 # ╔═╡ a60d0072-84c7-11eb-0fa3-b3c8f0288960
-function elliptic_mul(E::Curve, P1::Point, k::Int)::Point
+# Computes kP via repeated addition of P + P. If k is negative, P is negated.
+function elliptic_mul(E::Curve, P::Point, k::Int)::Point
 	if k < 0
 		k = -k
-		P1 = (P1[1], -P1[2] + E.modulo)
+		# To negate a point, we keep the x coordinate and negate the y coordinate.
+		# In modulo arithmetic, -a (mod p) is equivalent to -a + p.
+		P = (P[1], -P[2] + E.p)
 	end
 	
-	P2 = P1
+	R = P
+	
 	for i in 1:k-1
-		P2 = elliptic_add(E, P2, P1)
+		R = elliptic_add(E, R, P)
 	end
 	
-	P2
+	R
 end
 
 # ╔═╡ 656d82da-84ae-11eb-1ad2-73429a6f757d
 with_terminal() do
+	println("Given public key Pb = $(task_Pb), G = $(task_G)\n")
+	
 	msg = []
 	for (c, k) in zip(task_msg, task_ks)
 		Pm = curve_lookup[c]
@@ -164,7 +179,8 @@ with_terminal() do
 		
 		append!(msg, (kG, Pm_kPb))
 	end
-	println("Message: $(join(msg))")
+	
+	println("\nMessage: $(join(msg, ' '))")
 end
 
 # ╔═╡ Cell order:
